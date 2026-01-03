@@ -1,0 +1,101 @@
+.mainContainer {
+    width: calc(100% / 5 * 2);
+    gap: 30px;
+    display: flex;
+    justify-content: right;
+}
+
+.innerContainer {
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 50px 50px 0 0;
+}
+
+h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+    text-align: left;
+}
+
+.innerContainer .processBtn {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #cacaca;
+    border-radius: 5px;
+    text-align: left;
+    gap: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.082);
+}
+
+.innerContainer .processBtn:hover {
+    border: 1px solid #000000;
+}
+
+.innerContainer .laserEngravingBox {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #cacaca;
+    border-radius: 5px;
+    text-align: left;
+    gap: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.082);
+    margin-top: 30px;
+    padding: 20px;
+}
+
+.laserEngravingBox .textContainer {
+    width: 95%;
+}
+
+button p {
+    font-size: 14px;
+}
+
+.innerContainer h3 {
+    padding: 5px 0 5px 0;
+    margin: 0;
+    font-size: 17px
+}
+
+.innerContainer p {
+    padding: 5px 0 5px 0;
+    margin: 0;
+    font-size: 15px;
+}
+
+
+
+.laserEngravingBox .getStartedBtn {
+    text-decoration: none;
+    color: #000000;
+    border: none;
+    background-color: #00000000;
+    border: 1px solid black;
+    padding: 7px 20px;
+    border-radius: 15px;
+    margin-top: 10px;
+}
+
+.laserEngravingBox .getStartedBtn:active {
+    background-color: black;
+    color: white;
+}
+
+.laserEngravingBox .learnMoreBtn {
+    color: #000000;
+}
+
+.innerContainer .processBtn img {
+    width: 50px;
+    height: 50px;
+    aspect-ratio: 1;
+}
+
+.selected {
+    border: 1px solid #000000 !important;
+}

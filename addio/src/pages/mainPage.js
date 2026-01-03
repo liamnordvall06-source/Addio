@@ -1,0 +1,28 @@
+import React from "react";
+import styles from "./mainPage.module.css";
+import SidebarComponent from "../components/sidebarComponent";
+import ChooseTechnologyComponent from "../components/chooseTechnologyComponent";
+import UploadCADComponent from "../components/uploadCADCompnent";
+import FooterComponent from "../components/footerComponent";
+
+const MainPage = () => {
+  return (
+    <div className={styles.mainContainer}>
+      <SidebarComponent />
+
+      <div className={styles.mainContentContainer}>
+        <div className={styles.contentRow}>
+          <ChooseTechnologyComponent />
+
+          <div className={styles.verticalDivider} />
+
+          <UploadCADComponent />
+        </div>
+
+        {/* <FooterComponent /> */}
+      </div>
+    </div>
+  );
+};
+
+export default MainPage;
