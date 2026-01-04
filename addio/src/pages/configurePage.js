@@ -6,7 +6,6 @@ import SidebarComponent from "../components/sidebarComponent";
 const ConfigurePage = () => {
     return (
         <div className={styles.mainPage}>
-            <SidebarComponent />
         </div>
     );
 }
