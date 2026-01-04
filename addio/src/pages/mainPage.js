@@ -1,9 +1,7 @@
-import React from "react";
 import styles from "./mainPage.module.css";
 import SidebarComponent from "../components/sidebarComponent";
 import ChooseTechnologyComponent from "../components/chooseTechnologyComponent";
 import UploadCADComponent from "../components/uploadCADCompnent";
-import FooterComponent from "../components/footerComponent";
 
 const MainPage = () => {
   return (
@@ -18,8 +16,6 @@ const MainPage = () => {
 
           <UploadCADComponent />
         </div>
-
-        {/* <FooterComponent /> */}
       </div>
     </div>
   );
