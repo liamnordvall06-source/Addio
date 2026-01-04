@@ -31,22 +31,24 @@ const ChooseTechnologyComponent = () => {
                 <button
                     className={getButtonClass("SLA")}
                     onClick={() => setSelectedTech("SLA")}
+                    disabled
                 >
                     <img src={SLALogo} alt="SLA" />
                     <div className={styles.textContainer}>
                         <h3>Stereolithography</h3>
-                        <p>SLA (200 x 200 x 150 mm)</p>
+                        <p>SLA (Coming soon)</p>
                     </div>
                 </button>
 
                 <button
                     className={getButtonClass("SLS")}
                     onClick={() => setSelectedTech("SLS")}
+                    disabled
                 >
                     <img src={SLSLogo} alt="SLS" />
                     <div className={styles.textContainer}>
                         <h3>Selective Laser Sintering</h3>
-                        <p>SLS (300 x 200 x 250 mm)</p>
+                        <p>SLS (Coming soon)</p>
                     </div>
                 </button>
 
