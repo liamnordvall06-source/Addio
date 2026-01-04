@@ -1,0 +1,13 @@
+    
+.mainContainer{
+
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #cacaca;
+    border-radius: 5px;
+    text-align: left;
+    gap: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.082);
+
+}
