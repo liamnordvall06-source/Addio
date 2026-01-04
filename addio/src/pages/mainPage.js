@@ -15,11 +15,11 @@ const MainPage = () => {
           <ChooseTechnologyComponent />
 
           <div className={styles.verticalDivider} />
-
+          
           <UploadCADComponent />
+
         </div>
 
-        {/* <FooterComponent /> */}
       </div>
     </div>
   );
