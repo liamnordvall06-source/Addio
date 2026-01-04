@@ -11,3 +11,30 @@
     left: 50%;
     transform: translate(-50%, -50%);
 }
+
+
+.Label{
+    margin: 0;
+    text-align: center;
+    padding-bottom: 700px;
+}
+
+.addButton{
+
+    
+    height: 50px;
+    width: 100px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+
+.wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
