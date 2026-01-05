@@ -4,9 +4,14 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import styles from "./STLViewerComponent.module.css";
 
-const GRID_SIZE = 100;
-const GRID_DIVS = 100;
+const GRID_SIZE = 350;
+const GRID_DIVS = 350;
 const TARGET_FILL = 0.7;
+
+    
+const MAX_X = 350;
+const MAX_Y = 350;
+const MAX_Z = 350;
 
 function dominantNormalByArea(geometry) {
   const pos = geometry.getAttribute("position");
@@ -16,6 +21,10 @@ function dominantNormalByArea(geometry) {
   const ab = new THREE.Vector3();
   const ac = new THREE.Vector3();
   const n = new THREE.Vector3();
+
+
+
+
 
   const buckets = new Map();
   const q = 20;
@@ -201,12 +210,28 @@ const STLViewerComponent = ({
 
     const loader = new STLLoader();
     const reader = new FileReader();
+reader.onload = () => {
+  const geometry = loader.parse(reader.result);
 
-    reader.onload = () => {
-      const geometry = loader.parse(reader.result);
-      geometry.computeVertexNormals();
-      geometry.computeBoundingBox();
-      geometry.center();
+  geometry.computeBoundingBox();
+
+  // ✅ IF-SATS: kontrollera maxstorlek (mm)
+  const size = new THREE.Vector3();
+  geometry.boundingBox.getSize(size);
+
+  if (size.x > MAX_X || size.y > MAX_Y || size.z > MAX_Z) {
+    alert(
+      `STL-filen är för stor!\n` +
+      `Max: 350 × 3500 × 350 mm\n` +
+      `Din: ${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`
+    );
+    return; // ❌ stoppa uppladdning
+  }
+
+  // ✅ fortsätt bara om STL är OK
+  geometry.computeVertexNormals();
+  geometry.center();
+
 
       const material = new THREE.MeshStandardMaterial({
         color: 0x888888,
