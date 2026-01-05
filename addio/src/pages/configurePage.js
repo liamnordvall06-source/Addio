@@ -7,6 +7,7 @@ const ConfigurePage = () => {
     return (
         <div className={styles.mainPage}>
             <SidebarComponent />
+            <ConfigurePage/>
         </div>
     );
 }
