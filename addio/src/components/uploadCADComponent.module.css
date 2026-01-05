@@ -52,6 +52,12 @@ h1 {
   justify-items: center;
 }
 
+.Batch {
+  background-color: red;
+  height: 200px;
+  width: 100px;
+}
+
 .icon {
   font-size: 22px;
   line-height: 1;

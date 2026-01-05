@@ -29,12 +29,20 @@ const UploadCADComponent = () => {
             <p>Klicka för att ladda upp</p>
             <p className={styles.supported}>Stöder: .stl</p>
           </div>
+           <div className="Batch">
+            hej
+           </div>
+        
         </label>
+       
+        
+
       )}
 
       <button className={styles.continueBtn} disabled={!file}>
         Fortsätt
       </button>
+    
     </div>
   );
 };
