@@ -1,13 +1,14 @@
 import React from "react";
 import styles from "./configurePage.module.css";
 import SidebarComponent from "../components/sidebarComponent";
+import ConfigureComponent from "../components/configureComponent";
 
 
 const ConfigurePage = () => {
     return (
         <div className={styles.mainPage}>
-            <SidebarComponent />
-            <ConfigurePage/>
+            {/* <SidebarComponent /> */}
+            <ConfigureComponent />
         </div>
     );
 }

@@ -1,0 +1,131 @@
+/* Sida som helhet */
+.pageContainer {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  font-family: "Arial", sans-serif;
+}
+
+/* Sidebar vänster */
+.sidebar {
+  width: 300px;
+  background-color: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px;
+  gap: 30px;
+}
+
+.logo {
+  max-width: 180px;
+  margin-bottom: 40px;
+}
+
+.techOptions h3 {
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.techCard,
+.techCardDisabled {
+  background-color: #111;
+  color: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.techCardDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Höger huvudarea */
+.mainContent {
+  flex: 1;
+  padding: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: #f5f5f5;
+}
+
+/* Form + STL */
+.formAndViewer {
+  display: flex;
+  gap: 40px;
+  width: 100%;
+  max-width: 1200px;
+  flex-wrap: wrap;
+}
+
+/* Formulär */
+.formWrapper {
+  flex: 1;
+  min-width: 350px;
+}
+
+.configureForm {
+  background-color: #fff;
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  font-size: 1.6rem;
+  margin-bottom: 25px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.formRow label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.formRow select,
+.formRow input[type="number"] {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+/* Knapp */
+.submitButton {
+  background-color: #000;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.submitButton:hover {
+  background-color: #222;
+  transform: translateY(-2px);
+}
+
+/* STL Viewer */
+.stlWrapper {
+  flex: 1;
+  min-width: 400px;
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #ccc;
+  background-color: #fff;
+}
