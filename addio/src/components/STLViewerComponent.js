@@ -4,15 +4,14 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import styles from "./STLViewerComponent.module.css";
 
-const GRID_SIZE = 350;
-const GRID_DIVS = 350;
-const TARGET_FILL = 0.7;
+const GRID_SIZE = 350; // ✅ 350 mm x 350 mm
+const GRID_DIVS = 35;  // ✅ 10 mm per ruta (350/35)
 
-    
 const MAX_X = 350;
 const MAX_Y = 350;
 const MAX_Z = 350;
 
+// Hitta dominant normal (störst sammanlagd area) genom att bucket:a normaler
 function dominantNormalByArea(geometry) {
   const pos = geometry.getAttribute("position");
   const a = new THREE.Vector3();
@@ -21,10 +20,6 @@ function dominantNormalByArea(geometry) {
   const ab = new THREE.Vector3();
   const ac = new THREE.Vector3();
   const n = new THREE.Vector3();
-
-
-
-
 
   const buckets = new Map();
   const q = 20;
@@ -78,11 +73,12 @@ function frameCameraToObject(camera, object) {
   const maxSize = Math.max(size.x, size.y, size.z);
   const fov = camera.fov * (Math.PI / 180);
   let dist = (maxSize / 2) / Math.tan(fov / 2);
-  dist *= 1.4;
+  dist *= 1.6;
 
   camera.position.set(center.x + dist, center.y + dist, center.z + dist);
   camera.lookAt(center);
-  camera.near = Math.max(dist / 100, 0.001);
+
+  camera.near = Math.max(dist / 100, 0.1);
   camera.far = dist * 100;
   camera.updateProjectionMatrix();
 }
@@ -94,11 +90,7 @@ function disposeMesh(mesh) {
   else mesh.material?.dispose();
 }
 
-const STLViewerComponent = ({
-  file, // ✅ kommer från parent
-  onFileChange, // (file: File) => void
-  onFileNameChange, // (name: string) => void
-}) => {
+const STLViewerComponent = ({ file, onFileChange, onFileNameChange }) => {
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -106,9 +98,28 @@ const STLViewerComponent = ({
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
-  const currentMeshRef = useRef(null);
 
-  // Initiera threejs EN gång
+  const currentMeshRef = useRef(null);
+  const gridRef = useRef(null);
+
+  // ✅ för att ignorera gamla FileReader-onload om man väljer ny fil snabbt
+  const loadTokenRef = useRef(0);
+
+  const resetCurrentSTL = useCallback(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    if (currentMeshRef.current) {
+      scene.remove(currentMeshRef.current);
+      disposeMesh(currentMeshRef.current);
+      currentMeshRef.current = null;
+    }
+
+    // Extra säkerhet: rensa render lists (GPU draw-call cache)
+    rendererRef.current?.renderLists?.dispose();
+  }, []);
+
+  // Initiera Three.js en gång
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -125,7 +136,7 @@ const STLViewerComponent = ({
       0.1,
       5000
     );
-    camera.position.set(12, 9, 9);
+    camera.position.set(500, 400, 400);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
@@ -135,25 +146,29 @@ const STLViewerComponent = ({
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    scene.add(new THREE.GridHelper(GRID_SIZE, GRID_DIVS));
+    // ✅ 350×350 mm grid
+    const grid = new THREE.GridHelper(GRID_SIZE, GRID_DIVS);
+    scene.add(grid);
+    gridRef.current = grid;
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir1.position.set(10, 20, 10);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const dir1 = new THREE.DirectionalLight(0xffffff, 0.85);
+    dir1.position.set(600, 900, 600);
     scene.add(dir1);
-    const dir2 = new THREE.DirectionalLight(0xffffff, 0.4);
-    dir2.position.set(-10, 15, -10);
+
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.35);
+    dir2.position.set(-600, 700, -600);
     scene.add(dir2);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableZoom = false;
+    controls.enableZoom = true;
     controls.enablePan = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.minPolarAngle = Math.PI * 0.15;
     controls.maxPolarAngle = Math.PI * 0.85;
-    controls.minDistance = 2;
-    controls.maxDistance = 200;
+    controls.minDistance = 50;
+    controls.maxDistance = 3000;
     controlsRef.current = controls;
 
     let rafId = 0;
@@ -189,99 +204,113 @@ const STLViewerComponent = ({
         currentMeshRef.current = null;
       }
 
+      if (gridRef.current) {
+        scene.remove(gridRef.current);
+        gridRef.current = null;
+      }
+
       controls.dispose();
       renderer.dispose();
       container.innerHTML = "";
     };
   }, []);
 
-  const addSTL = useCallback((pickedFile) => {
-    const scene = sceneRef.current;
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    if (!scene || !camera || !controls || !pickedFile) return;
+  const addSTL = useCallback(
+    (pickedFile) => {
+      const scene = sceneRef.current;
+      const camera = cameraRef.current;
+      const controls = controlsRef.current;
+      if (!scene || !camera || !controls || !pickedFile) return;
 
-    // ta bort gammal
-    if (currentMeshRef.current) {
-      scene.remove(currentMeshRef.current);
-      disposeMesh(currentMeshRef.current);
-      currentMeshRef.current = null;
-    }
+      // ✅ rensa ALLTID tidigare STL direkt
+      resetCurrentSTL();
 
-    const loader = new STLLoader();
-    const reader = new FileReader();
-reader.onload = () => {
-  const geometry = loader.parse(reader.result);
+      // ✅ ny token för denna load
+      const myToken = ++loadTokenRef.current;
 
-  geometry.computeBoundingBox();
+      const loader = new STLLoader();
+      const reader = new FileReader();
 
-  // ✅ IF-SATS: kontrollera maxstorlek (mm)
-  const size = new THREE.Vector3();
-  geometry.boundingBox.getSize(size);
+      reader.onload = () => {
+        // ✅ ignorera om en nyare load redan startat
+        if (myToken !== loadTokenRef.current) return;
 
-  if (size.x > MAX_X || size.y > MAX_Y || size.z > MAX_Z) {
-    alert(
-      `STL-filen är för stor!\n` +
-      `Max: 350 × 3500 × 350 mm\n` +
-      `Din: ${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`
-    );
-    return; // ❌ stoppa uppladdning
-  }
+        const geometry = loader.parse(reader.result);
 
-  // ✅ fortsätt bara om STL är OK
-  geometry.computeVertexNormals();
-  geometry.center();
+        geometry.computeBoundingBox();
+        const size = new THREE.Vector3();
+        geometry.boundingBox.getSize(size);
 
+        // ✅ validera storlek (mm)
+        if (size.x > MAX_X || size.y > MAX_Y || size.z > MAX_Z) {
+          alert(
+            `STL-filen är för stor!\n` +
+              `Max: ${MAX_X} × ${MAX_Y} × ${MAX_Z} mm\n` +
+              `Din: ${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`
+          );
 
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        metalness: 0.15,
-        roughness: 0.7,
-      });
+          // ✅ rensa + nolla parent state
+          resetCurrentSTL();
+          onFileChange?.(null);
+          onFileNameChange?.("");
+          return;
+        }
 
-      const mesh = new THREE.Mesh(geometry, material);
+        geometry.computeVertexNormals();
 
-      const dn = dominantNormalByArea(geometry);
-      mesh.quaternion.setFromUnitVectors(dn, new THREE.Vector3(0, -1, 0));
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x888888,
+          metalness: 0.15,
+          roughness: 0.7,
+        });
 
-      // skala till grid
-      const preBox = new THREE.Box3().setFromObject(mesh);
-      const preSize = new THREE.Vector3();
-      preBox.getSize(preSize);
-      const maxDim = Math.max(preSize.x, preSize.y, preSize.z);
-      const target = GRID_SIZE * TARGET_FILL;
-      const s = maxDim > 0 ? target / maxDim : 1;
-      mesh.scale.setScalar(s);
+        const mesh = new THREE.Mesh(geometry, material);
 
-      // placera på marken
-      const box = new THREE.Box3().setFromObject(mesh);
-      mesh.position.y -= box.min.y;
+        // ✅ Lägg modellen på ytan med mest area:
+        // - dominant normal = normal för största face-klustret
+        // - rotera så den pekar NERÅT (0,-1,0) => den ytan hamnar mot "golvet"
+        const dn = dominantNormalByArea(geometry);
+        mesh.quaternion.setFromUnitVectors(dn, new THREE.Vector3(0, -1, 0));
 
-      scene.add(mesh);
-      currentMeshRef.current = mesh;
+        // ✅ Centrera runt origo (för bättre controlls/camera) – INGEN skalning
+        // (Vill du inte flytta modellen alls: ta bort detta)
+        geometry.center();
 
-      frameCameraToObject(camera, mesh);
+        // ✅ Ställ på marken (y=0)
+        const box = new THREE.Box3().setFromObject(mesh);
+        mesh.position.y -= box.min.y;
 
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-      controls.target.copy(center);
-      controls.update();
-    };
+        scene.add(mesh);
+        currentMeshRef.current = mesh;
 
-    reader.readAsArrayBuffer(pickedFile);
-  }, []);
+        frameCameraToObject(camera, mesh);
 
-  // ✅ Ladda fil från parent när den ändras
+        const target = new THREE.Vector3();
+        new THREE.Box3().setFromObject(mesh).getCenter(target);
+        controls.target.copy(target);
+        controls.update();
+      };
+
+      reader.readAsArrayBuffer(pickedFile);
+    },
+    [onFileChange, onFileNameChange, resetCurrentSTL]
+  );
+
+  // Om parent uppdaterar file
   useEffect(() => {
     if (file) addSTL(file);
   }, [file, addSTL]);
 
   const handlePick = (picked) => {
     if (!picked) return;
+
+    // ✅ rensa direkt när man väljer ny fil
+    resetCurrentSTL();
+
     onFileChange?.(picked);
     onFileNameChange?.(picked.name);
-    // addSTL körs via useEffect när parent uppdaterar `file`,
-    // men vi kan också ladda direkt för responsiv känsla:
+
+    // ✅ visa direkt
     addSTL(picked);
   };
 
@@ -295,7 +324,7 @@ reader.onload = () => {
         onChange={(e) => {
           const picked = e.target.files?.[0];
           handlePick(picked);
-          e.target.value = "";
+          e.target.value = ""; // ✅ så samma fil kan väljas igen
         }}
       />
 

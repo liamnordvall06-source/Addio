@@ -24,7 +24,8 @@ const UploadCADComponent = () => {
       const ext = file.name.split(".").pop()?.toLowerCase() || "stl";
       const id = uuidv4();
 
-      // OBS: du skrev "qoutes" – jag behåller exakt samma
+      sessionStorage.setItem("cadUploadUUID", id);
+
       const path = `qoutes/${id}.${ext}`;
       const fileRef = ref(storage, path);
 
@@ -39,7 +40,6 @@ const UploadCADComponent = () => {
       await uploadBytes(fileRef, file, metadata);
       const url = await getDownloadURL(fileRef);
 
-      // 👉 Navigera till /configure och skicka med data
       navigate("/configure", {
         state: {
           fileId: id,
