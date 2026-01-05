@@ -246,7 +246,6 @@ const STLViewerComponent = ({
     reader.readAsArrayBuffer(pickedFile);
   }, []);
 
-  // ✅ Ladda fil från parent när den ändras
   useEffect(() => {
     if (file) addSTL(file);
   }, [file, addSTL]);
@@ -255,13 +254,12 @@ const STLViewerComponent = ({
     if (!picked) return;
     onFileChange?.(picked);
     onFileNameChange?.(picked.name);
-    // addSTL körs via useEffect när parent uppdaterar `file`,
-    // men vi kan också ladda direkt för responsiv känsla:
     addSTL(picked);
   };
 
   return (
     <div className={styles.wrapper}>
+        
       <input
         ref={fileInputRef}
         type="file"
@@ -273,7 +271,6 @@ const STLViewerComponent = ({
           e.target.value = "";
         }}
       />
-
       <div
         className={styles.mainContainer}
         ref={containerRef}
