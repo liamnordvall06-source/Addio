@@ -1,38 +1,40 @@
-import React from "react";
+import React, { useState } from "react";
 import styles from "./uploadCADComponent.module.css";
+import STLViewerComponent from "./STLViewerComponent";
 
 const UploadCADComponent = () => {
+  const [file, setFile] = useState(null);
+
   return (
     <div className={styles.mainContainer}>
-      <div className={styles.innerContainer}>
-        <h1>Ladda upp CAD-modellen och få en offert</h1>
+      <h1>Ladda upp CAD-modellen och få en offert</h1>
 
-        <div
-          className={styles.dropzone}
-          role="button"
-          tabIndex={0}
-          aria-disabled={false}
-        >
+      {file ? (
+        <STLViewerComponent
+          file={file}
+          onFileChange={setFile}
+          onFileNameChange={() => {}}
+        />
+      ) : (
+        <label className={styles.dropzone}>
           <input
             type="file"
             accept=".stl"
             className={styles.hiddenInput}
-            disabled={false}
-            onChange={() => {}}
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
 
           <div className={styles.content}>
             <div className={styles.icon}>↑</div>
-
-            <p className={styles.text}>
-              Drag and drop here or <span className={styles.link}>select</span>
-            </p>
-
+            <p>Klicka för att ladda upp</p>
             <p className={styles.supported}>Stöder: .stl</p>
           </div>
-        </div>
-      </div>
-      <button className={styles.continueBtn}>Fortsätt</button>
+        </label>
+      )}
+
+      <button className={styles.continueBtn} disabled={!file}>
+        Fortsätt
+      </button>
     </div>
   );
 };

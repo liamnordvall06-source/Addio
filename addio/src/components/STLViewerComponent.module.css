@@ -1,17 +1,10 @@
 .mainContainer {
-    width: 700px;
-    height: 600px;
+    width: 100%;
+    height: 500px;
     background-color: #ffffff;
     border: 1px solid #cacaca;
     border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.082);
-
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
 }
-
 
 .Label{
     margin: 0;
@@ -19,19 +12,9 @@
     padding-bottom: 700px;
 }
 
-.addButton{
-
-    
-    height: 50px;
-    width: 100px;
-    cursor: pointer;
-    font-size: 20px;
-}
-
-
 .wrapper {
-  min-height: 100vh;
   width: 100%;
+  height: 500px;
   display: flex;
   flex-direction: column;
   align-items: center;

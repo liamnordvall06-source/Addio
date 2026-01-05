@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -40,7 +40,11 @@ function dominantNormalByArea(geometry) {
     const kz = Math.round(normal.z * q);
     const key = `${kx},${ky},${kz}`;
 
-    const entry = buckets.get(key) || { areaSum: 0, normalSum: new THREE.Vector3() };
+    const entry = buckets.get(key) || {
+      areaSum: 0,
+      normalSum: new THREE.Vector3(),
+    };
+
     entry.areaSum += area;
     entry.normalSum.addScaledVector(normal, area);
     buckets.set(key, entry);
@@ -74,15 +78,28 @@ function frameCameraToObject(camera, object) {
   camera.updateProjectionMatrix();
 }
 
-const STLViewerComponent = () => {
+function disposeMesh(mesh) {
+  if (!mesh) return;
+  mesh.geometry?.dispose();
+  if (Array.isArray(mesh.material)) mesh.material.forEach((m) => m.dispose());
+  else mesh.material?.dispose();
+}
+
+const STLViewerComponent = ({
+  file, // ✅ kommer från parent
+  onFileChange, // (file: File) => void
+  onFileNameChange, // (name: string) => void
+}) => {
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
+
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
   const currentMeshRef = useRef(null);
 
+  // Initiera threejs EN gång
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -109,8 +126,7 @@ const STLViewerComponent = () => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    const grid = new THREE.GridHelper(GRID_SIZE, GRID_DIVS);
-    scene.add(grid);
+    scene.add(new THREE.GridHelper(GRID_SIZE, GRID_DIVS));
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
     const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -140,12 +156,16 @@ const STLViewerComponent = () => {
     animate();
 
     const onResize = () => {
-      if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
-      const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
-      rendererRef.current.setSize(w, h);
-      cameraRef.current.aspect = w / h;
-      cameraRef.current.updateProjectionMatrix();
+      const c = containerRef.current;
+      const r = rendererRef.current;
+      const cam = cameraRef.current;
+      if (!c || !r || !cam) return;
+
+      const w = c.clientWidth;
+      const h = c.clientHeight;
+      r.setSize(w, h);
+      cam.aspect = w / h;
+      cam.updateProjectionMatrix();
     };
 
     window.addEventListener("resize", onResize);
@@ -154,14 +174,9 @@ const STLViewerComponent = () => {
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(rafId);
 
-      if (currentMeshRef.current && sceneRef.current) {
-        sceneRef.current.remove(currentMeshRef.current);
-        currentMeshRef.current.geometry?.dispose();
-        if (Array.isArray(currentMeshRef.current.material)) {
-          currentMeshRef.current.material.forEach((m) => m.dispose());
-        } else {
-          currentMeshRef.current.material?.dispose();
-        }
+      if (currentMeshRef.current) {
+        scene.remove(currentMeshRef.current);
+        disposeMesh(currentMeshRef.current);
         currentMeshRef.current = null;
       }
 
@@ -171,20 +186,16 @@ const STLViewerComponent = () => {
     };
   }, []);
 
-  const addSTL = (file) => {
+  const addSTL = useCallback((pickedFile) => {
     const scene = sceneRef.current;
     const camera = cameraRef.current;
     const controls = controlsRef.current;
-    if (!scene || !camera || !controls) return;
+    if (!scene || !camera || !controls || !pickedFile) return;
 
+    // ta bort gammal
     if (currentMeshRef.current) {
       scene.remove(currentMeshRef.current);
-      currentMeshRef.current.geometry?.dispose();
-      if (Array.isArray(currentMeshRef.current.material)) {
-        currentMeshRef.current.material.forEach((m) => m.dispose());
-      } else {
-        currentMeshRef.current.material?.dispose();
-      }
+      disposeMesh(currentMeshRef.current);
       currentMeshRef.current = null;
     }
 
@@ -208,6 +219,7 @@ const STLViewerComponent = () => {
       const dn = dominantNormalByArea(geometry);
       mesh.quaternion.setFromUnitVectors(dn, new THREE.Vector3(0, -1, 0));
 
+      // skala till grid
       const preBox = new THREE.Box3().setFromObject(mesh);
       const preSize = new THREE.Vector3();
       preBox.getSize(preSize);
@@ -216,6 +228,7 @@ const STLViewerComponent = () => {
       const s = maxDim > 0 ? target / maxDim : 1;
       mesh.scale.setScalar(s);
 
+      // placera på marken
       const box = new THREE.Box3().setFromObject(mesh);
       mesh.position.y -= box.min.y;
 
@@ -230,34 +243,47 @@ const STLViewerComponent = () => {
       controls.update();
     };
 
-    reader.readAsArrayBuffer(file);
+    reader.readAsArrayBuffer(pickedFile);
+  }, []);
+
+  // ✅ Ladda fil från parent när den ändras
+  useEffect(() => {
+    if (file) addSTL(file);
+  }, [file, addSTL]);
+
+  const handlePick = (picked) => {
+    if (!picked) return;
+    onFileChange?.(picked);
+    onFileNameChange?.(picked.name);
+    // addSTL körs via useEffect när parent uppdaterar `file`,
+    // men vi kan också ladda direkt för responsiv känsla:
+    addSTL(picked);
   };
 
   return (
     <div className={styles.wrapper}>
-      <h1 className={styles.Label}>Viewer</h1>
-
-      <button
-        type="button"
-        className={styles.addButton}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        Import STL
-      </button>
-
       <input
         ref={fileInputRef}
         type="file"
         accept=".stl"
         style={{ display: "none" }}
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) addSTL(file);
+          const picked = e.target.files?.[0];
+          handlePick(picked);
           e.target.value = "";
         }}
       />
 
-      <div className={styles.mainContainer} ref={containerRef} />
+      <div
+        className={styles.mainContainer}
+        ref={containerRef}
+        role="button"
+        tabIndex={0}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+        }}
+      />
     </div>
   );
 };
