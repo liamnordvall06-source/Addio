@@ -91,11 +91,12 @@ const STLViewerComponent = ({
   fileName,
   locked = false,
   showBadge = true,
+  showClear = true,
+  onClear,
   onFileChange,
   onFileNameChange,
 }) => {
   const containerRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
@@ -248,9 +249,9 @@ const STLViewerComponent = ({
       geometry.computeVertexNormals();
 
       const material = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        metalness: 0.15,
-        roughness: 0.7,
+        color: 0x666666,
+        metalness: 0.12,
+        roughness: 0.8,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -261,7 +262,7 @@ const STLViewerComponent = ({
       geometry.center();
 
       const box = new THREE.Box3().setFromObject(mesh);
-      mesh.position.y -= box.min.y; // ✅ sätter på “golvet” = griden
+      mesh.position.y -= box.min.y; // ✅ står på grid
 
       scene.add(mesh);
       currentMeshRef.current = mesh;
@@ -325,29 +326,17 @@ const STLViewerComponent = ({
     if (url) addSTLFromUrl(url, fileName);
   }, [url, fileName, addSTLFromUrl]);
 
-  const handlePick = (picked) => {
-    if (!picked) return;
-    onFileChange?.(picked);
-    onFileNameChange?.(picked.name);
-    addSTLFromFile(picked);
+  const handleClear = () => {
+    resetCurrentSTL();
+    onFileChange?.(null);
+    onFileNameChange?.("");
+    onClear?.();
   };
+
+  const hasModel = Boolean(file || url || badge.name);
 
   return (
     <div className={styles.wrapper}>
-      {!locked && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".stl"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const picked = e.target.files?.[0];
-            handlePick(picked);
-            e.target.value = "";
-          }}
-        />
-      )}
-
       <div className={styles.viewerWrap}>
         <div className={styles.mainContainer} ref={containerRef} role="presentation" />
 
@@ -362,13 +351,9 @@ const STLViewerComponent = ({
           </div>
         )}
 
-        {!locked && (
-          <button
-            type="button"
-            className={styles.changeFileBtn}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Byt fil
+        {showClear && hasModel && !locked && (
+          <button type="button" className={styles.clearBtn} onClick={handleClear} aria-label="Ta bort fil">
+            ×
           </button>
         )}
       </div>

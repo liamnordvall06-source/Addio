@@ -112,6 +112,7 @@
 .optionCard {
   width: 100%;
   text-align: left;
+  font-weight: 800;
   padding: 12px 12px;
   border-radius: 10px;
   border: 1px solid #dedede;

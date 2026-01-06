@@ -20,9 +20,11 @@ const UploadCADComponent = () => {
         <STLViewerComponent
           file={file}
           locked={false}
+          showBadge={true}
+          showClear={true}
           onFileChange={setFile}
           onFileNameChange={() => {}}
-          showBadge={true}
+          onClear={() => setFile(null)}
         />
       ) : (
         <label className={styles.dropzone}>

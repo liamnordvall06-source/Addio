@@ -38,8 +38,8 @@ const ConfigureComponent = () => {
 
   const [quantity, setQuantity] = useState(1);
   const [material, setMaterial] = useState("");
-  const [infill, setInfill] = useState("");
   const [color, setColor] = useState("");
+  const [infill, setInfill] = useState("");
 
   const materialName = useMemo(
     () => materialsFromDB.find((m) => m.id === material)?.name || "",
@@ -50,7 +50,7 @@ const ConfigureComponent = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     alert(
-      `Offert skickad!\nKvantitet: ${quantity}\nMaterial: ${materialName}\nInfill: ${infill}\nFärg: ${colorName}`
+      `Offert skickad!\nKvantitet: ${quantity}\nMaterial: ${materialName}\nFärg: ${colorName}\nInfill: ${infill}`
     );
   };
 
@@ -77,7 +77,7 @@ const ConfigureComponent = () => {
                 <div className={styles.field}>
                   <label className={styles.label}>Kvantitet</label>
                   <input
-                    className={styles.input}
+                    className={`${styles.input} ${styles.quantityInput}`}
                     type="number"
                     min="1"
                     value={quantity}
@@ -101,6 +101,24 @@ const ConfigureComponent = () => {
                   </select>
                 </div>
 
+                {/* ✅ Färg som SELECT – över Infill */}
+                <div className={styles.field}>
+                  <label className={styles.label}>Färg</label>
+                  <select
+                    className={styles.select}
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                  >
+                    <option value="">-- Välj färg --</option>
+                    {colors.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* ✅ Infill som kort */}
                 <div className={styles.field}>
                   <div className={styles.fieldHeader}>
                     <div className={styles.label}>Infill</div>
@@ -123,38 +141,20 @@ const ConfigureComponent = () => {
                   </div>
                 </div>
 
-                <div className={styles.field}>
-                  <div className={styles.fieldHeader}>
-                    <div className={styles.label}>Färg</div>
-                    <div className={styles.valueHint}>{colorName || "Välj färg"}</div>
-                  </div>
-
-                  <div className={styles.optionList}>
-                    {colors.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`${styles.optionCard} ${
-                          color === c.id ? styles.optionCardActive : ""
-                        }`}
-                        onClick={() => setColor(c.id)}
-                      >
-                        <div className={styles.optionMain}>{c.name}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <button
                   type="submit"
                   className={styles.primaryBtn}
-                  disabled={!material || !infill || !color || !downloadUrl}
+                  disabled={!material || !color || !infill || !downloadUrl}
                 >
                   Få offert
                 </button>
 
                 {!downloadUrl && (
-                  <button type="button" className={styles.secondaryBtn} onClick={() => navigate("/")}>
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() => navigate("/")}
+                  >
                     Tillbaka och ladda upp
                   </button>
                 )}
@@ -167,12 +167,7 @@ const ConfigureComponent = () => {
               <div className={styles.viewerTitle}>Förhandsgranskning</div>
 
               {downloadUrl ? (
-                <STLViewerComponent
-                  url={downloadUrl}
-                  fileName={originalName}
-                  locked={true}
-                  showBadge={true}
-                />
+                <STLViewerComponent url={downloadUrl} fileName={originalName} locked={true} showBadge={true} />
               ) : (
                 <div className={styles.missingFile}>Ingen STL hittades.</div>
               )}
