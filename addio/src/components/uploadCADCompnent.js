@@ -3,57 +3,13 @@ import { useNavigate } from "react-router-dom";
 import styles from "./uploadCADComponent.module.css";
 import STLViewerComponent from "./STLViewerComponent";
 
-import { storage } from "../middleware/firebase"; 
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid";
-
 const UploadCADComponent = () => {
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
-
   const navigate = useNavigate();
 
-  const handleFileUpload = async () => {
-    if (!file || uploading) return;
-
-    setUploading(true);
-    setError("");
-
-    try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "stl";
-      const id = uuidv4();
-
-      sessionStorage.setItem("cadUploadUUID", id);
-
-      const path = `qoutes/${id}.${ext}`;
-      const fileRef = ref(storage, path);
-
-      const metadata = {
-        contentType: file.type || "application/sla",
-        customMetadata: {
-          originalName: file.name,
-          uuid: id,
-        },
-      };
-
-      await uploadBytes(fileRef, file, metadata);
-      const url = await getDownloadURL(fileRef);
-
-      navigate("/configure", {
-        state: {
-          fileId: id,
-          filePath: path,
-          downloadUrl: url,
-          originalName: file.name,
-        },
-      });
-    } catch (e) {
-      console.error(e);
-      setError("Uppladdningen misslyckades. Försök igen.");
-    } finally {
-      setUploading(false);
-    }
+  const goNext = () => {
+    if (!file) return;
+    navigate("/loading", { state: { file } });
   };
 
   return (
@@ -63,8 +19,10 @@ const UploadCADComponent = () => {
       {file ? (
         <STLViewerComponent
           file={file}
+          locked={false}
           onFileChange={setFile}
           onFileNameChange={() => {}}
+          showBadge={true}
         />
       ) : (
         <label className={styles.dropzone}>
@@ -74,7 +32,6 @@ const UploadCADComponent = () => {
             className={styles.hiddenInput}
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
-
           <div className={styles.content}>
             <div className={styles.icon}>↑</div>
             <p>Klicka för att ladda upp</p>
@@ -83,15 +40,9 @@ const UploadCADComponent = () => {
         </label>
       )}
 
-      <button
-        className={styles.continueBtn}
-        disabled={!file || uploading}
-        onClick={handleFileUpload}
-      >
-        {uploading ? "Laddar upp..." : "Fortsätt"}
+      <button className={styles.continueBtn} disabled={!file} onClick={goNext}>
+        Fortsätt
       </button>
-
-      {error && <p className={styles.error}>{error}</p>}
     </div>
   );
 };

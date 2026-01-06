@@ -1,23 +1,52 @@
-.mainContainer {
-    width: 100%;
-    height: 500px;
-    background-color: #ffffff;
-    border: 1px solid #cacaca;
-    border-radius: 5px;
-}
-
-.Label{
-    margin: 0;
-    text-align: center;
-    padding-bottom: 700px;
-}
-
 .wrapper {
   width: 100%;
+}
+
+.viewerWrap {
+  position: relative;
+  width: 100%;
+}
+
+.mainContainer {
+  width: 100%;
   height: 500px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  background-color: #ffffff;
+  border: 1px solid #cacaca;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fileBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(17, 17, 17, 0.85);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.fileName {
+  font-weight: 900;
+}
+
+.fileDims {
+  opacity: 0.85;
+  font-weight: 700;
+}
+
+.changeFileBtn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  font-weight: 900;
+  padding: 10px 12px;
+  cursor: pointer;
 }

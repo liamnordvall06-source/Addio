@@ -1,17 +1,16 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import styles from "./STLViewerComponent.module.css";
 
-const GRID_SIZE = 350; // ✅ 350 mm x 350 mm
-const GRID_DIVS = 35;  // ✅ 10 mm per ruta (350/35)
+const GRID_SIZE = 350;
+const GRID_DIVS = 35;
 
 const MAX_X = 350;
 const MAX_Y = 350;
 const MAX_Z = 350;
 
-// Hitta dominant normal (störst sammanlagd area) genom att bucket:a normaler
 function dominantNormalByArea(geometry) {
   const pos = geometry.getAttribute("position");
   const a = new THREE.Vector3();
@@ -44,11 +43,7 @@ function dominantNormalByArea(geometry) {
     const kz = Math.round(normal.z * q);
     const key = `${kx},${ky},${kz}`;
 
-    const entry = buckets.get(key) || {
-      areaSum: 0,
-      normalSum: new THREE.Vector3(),
-    };
-
+    const entry = buckets.get(key) || { areaSum: 0, normalSum: new THREE.Vector3() };
     entry.areaSum += area;
     entry.normalSum.addScaledVector(normal, area);
     buckets.set(key, entry);
@@ -90,7 +85,15 @@ function disposeMesh(mesh) {
   else mesh.material?.dispose();
 }
 
-const STLViewerComponent = ({ file, onFileChange, onFileNameChange }) => {
+const STLViewerComponent = ({
+  file,
+  url,
+  fileName,
+  locked = false,
+  showBadge = true,
+  onFileChange,
+  onFileNameChange,
+}) => {
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -102,8 +105,8 @@ const STLViewerComponent = ({ file, onFileChange, onFileNameChange }) => {
   const currentMeshRef = useRef(null);
   const gridRef = useRef(null);
 
-  // ✅ för att ignorera gamla FileReader-onload om man väljer ny fil snabbt
   const loadTokenRef = useRef(0);
+  const [badge, setBadge] = useState({ name: "", dims: null });
 
   const resetCurrentSTL = useCallback(() => {
     const scene = sceneRef.current;
@@ -115,11 +118,10 @@ const STLViewerComponent = ({ file, onFileChange, onFileNameChange }) => {
       currentMeshRef.current = null;
     }
 
-    // Extra säkerhet: rensa render lists (GPU draw-call cache)
     rendererRef.current?.renderLists?.dispose();
+    setBadge({ name: "", dims: null });
   }, []);
 
-  // Initiera Three.js en gång
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -146,7 +148,6 @@ const STLViewerComponent = ({ file, onFileChange, onFileNameChange }) => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // ✅ 350×350 mm grid
     const grid = new THREE.GridHelper(GRID_SIZE, GRID_DIVS);
     scene.add(grid);
     gridRef.current = grid;
@@ -215,129 +216,162 @@ const STLViewerComponent = ({ file, onFileChange, onFileNameChange }) => {
     };
   }, []);
 
-  const addSTL = useCallback(
-    (pickedFile) => {
+  const placeAndShow = useCallback(
+    (geometry, nameForBadge) => {
       const scene = sceneRef.current;
       const camera = cameraRef.current;
       const controls = controlsRef.current;
-      if (!scene || !camera || !controls || !pickedFile) return;
+      if (!scene || !camera || !controls) return;
 
-      // ✅ rensa ALLTID tidigare STL direkt
       resetCurrentSTL();
 
-      // ✅ ny token för denna load
+      geometry.computeBoundingBox();
+      const size = new THREE.Vector3();
+      geometry.boundingBox.getSize(size);
+
+      if (size.x > MAX_X || size.y > MAX_Y || size.z > MAX_Z) {
+        alert(
+          `STL-filen är för stor!\n` +
+            `Max: ${MAX_X} × ${MAX_Y} × ${MAX_Z} mm\n` +
+            `Din: ${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`
+        );
+        onFileChange?.(null);
+        onFileNameChange?.("");
+        return;
+      }
+
+      setBadge({
+        name: nameForBadge || "",
+        dims: { x: size.x, y: size.y, z: size.z },
+      });
+
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        metalness: 0.15,
+        roughness: 0.7,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+
+      const dn = dominantNormalByArea(geometry);
+      mesh.quaternion.setFromUnitVectors(dn, new THREE.Vector3(0, -1, 0));
+
+      geometry.center();
+
+      const box = new THREE.Box3().setFromObject(mesh);
+      mesh.position.y -= box.min.y; // ✅ sätter på “golvet” = griden
+
+      scene.add(mesh);
+      currentMeshRef.current = mesh;
+
+      frameCameraToObject(camera, mesh);
+
+      const target = new THREE.Vector3();
+      new THREE.Box3().setFromObject(mesh).getCenter(target);
+      controls.target.copy(target);
+      controls.update();
+    },
+    [onFileChange, onFileNameChange, resetCurrentSTL]
+  );
+
+  const addSTLFromFile = useCallback(
+    (pickedFile) => {
+      if (!pickedFile) return;
       const myToken = ++loadTokenRef.current;
 
       const loader = new STLLoader();
       const reader = new FileReader();
 
       reader.onload = () => {
-        // ✅ ignorera om en nyare load redan startat
         if (myToken !== loadTokenRef.current) return;
-
         const geometry = loader.parse(reader.result);
-
-        geometry.computeBoundingBox();
-        const size = new THREE.Vector3();
-        geometry.boundingBox.getSize(size);
-
-        // ✅ validera storlek (mm)
-        if (size.x > MAX_X || size.y > MAX_Y || size.z > MAX_Z) {
-          alert(
-            `STL-filen är för stor!\n` +
-              `Max: ${MAX_X} × ${MAX_Y} × ${MAX_Z} mm\n` +
-              `Din: ${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`
-          );
-
-          // ✅ rensa + nolla parent state
-          resetCurrentSTL();
-          onFileChange?.(null);
-          onFileNameChange?.("");
-          return;
-        }
-
-        geometry.computeVertexNormals();
-
-        const material = new THREE.MeshStandardMaterial({
-          color: 0x888888,
-          metalness: 0.15,
-          roughness: 0.7,
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-
-        // ✅ Lägg modellen på ytan med mest area:
-        // - dominant normal = normal för största face-klustret
-        // - rotera så den pekar NERÅT (0,-1,0) => den ytan hamnar mot "golvet"
-        const dn = dominantNormalByArea(geometry);
-        mesh.quaternion.setFromUnitVectors(dn, new THREE.Vector3(0, -1, 0));
-
-        // ✅ Centrera runt origo (för bättre controlls/camera) – INGEN skalning
-        // (Vill du inte flytta modellen alls: ta bort detta)
-        geometry.center();
-
-        // ✅ Ställ på marken (y=0)
-        const box = new THREE.Box3().setFromObject(mesh);
-        mesh.position.y -= box.min.y;
-
-        scene.add(mesh);
-        currentMeshRef.current = mesh;
-
-        frameCameraToObject(camera, mesh);
-
-        const target = new THREE.Vector3();
-        new THREE.Box3().setFromObject(mesh).getCenter(target);
-        controls.target.copy(target);
-        controls.update();
+        placeAndShow(geometry, pickedFile.name);
       };
 
       reader.readAsArrayBuffer(pickedFile);
     },
-    [onFileChange, onFileNameChange, resetCurrentSTL]
+    [placeAndShow]
   );
 
-  // Om parent uppdaterar file
+  const addSTLFromUrl = useCallback(
+    (stlUrl, badgeName) => {
+      if (!stlUrl) return;
+      const myToken = ++loadTokenRef.current;
+
+      const loader = new STLLoader();
+      loader.load(
+        stlUrl,
+        (geometry) => {
+          if (myToken !== loadTokenRef.current) return;
+          placeAndShow(geometry, badgeName || "modell.stl");
+        },
+        undefined,
+        (err) => {
+          console.error(err);
+          alert("Kunde inte ladda STL från URL.");
+        }
+      );
+    },
+    [placeAndShow]
+  );
+
   useEffect(() => {
-    if (file) addSTL(file);
-  }, [file, addSTL]);
+    if (file) addSTLFromFile(file);
+  }, [file, addSTLFromFile]);
+
+  useEffect(() => {
+    if (url) addSTLFromUrl(url, fileName);
+  }, [url, fileName, addSTLFromUrl]);
 
   const handlePick = (picked) => {
     if (!picked) return;
-
-    // ✅ rensa direkt när man väljer ny fil
-    resetCurrentSTL();
-
     onFileChange?.(picked);
     onFileNameChange?.(picked.name);
-
-    // ✅ visa direkt
-    addSTL(picked);
+    addSTLFromFile(picked);
   };
 
   return (
     <div className={styles.wrapper}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".stl"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const picked = e.target.files?.[0];
-          handlePick(picked);
-          e.target.value = ""; // ✅ så samma fil kan väljas igen
-        }}
-      />
+      {!locked && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".stl"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const picked = e.target.files?.[0];
+            handlePick(picked);
+            e.target.value = "";
+          }}
+        />
+      )}
 
-      <div
-        className={styles.mainContainer}
-        ref={containerRef}
-        role="button"
-        tabIndex={0}
-        onClick={() => fileInputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
-        }}
-      />
+      <div className={styles.viewerWrap}>
+        <div className={styles.mainContainer} ref={containerRef} role="presentation" />
+
+        {showBadge && badge.name && (
+          <div className={styles.fileBadge}>
+            <div className={styles.fileName}>{badge.name}</div>
+            {badge.dims && (
+              <div className={styles.fileDims}>
+                {badge.dims.x.toFixed(1)} × {badge.dims.y.toFixed(1)} × {badge.dims.z.toFixed(1)} mm
+              </div>
+            )}
+          </div>
+        )}
+
+        {!locked && (
+          <button
+            type="button"
+            className={styles.changeFileBtn}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Byt fil
+          </button>
+        )}
+      </div>
     </div>
   );
 };
