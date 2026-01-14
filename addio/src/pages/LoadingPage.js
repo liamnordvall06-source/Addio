@@ -9,11 +9,39 @@ import { v4 as uuidv4 } from "uuid";
 
 const START_DELAY_MS = 900;
 
+function guessContentTypeFromName(name) {
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext === "stl") return "model/stl";
+  return "application/octet-stream";
+}
+
+async function fileFromObjectUrl(objectUrl, fileName) {
+  const res = await fetch(objectUrl);
+  if (!res.ok) throw new Error("Kunde inte läsa filen från object URL.");
+  const blob = await res.blob();
+  const type = blob.type && blob.type !== "application/octet-stream"
+    ? blob.type
+    : guessContentTypeFromName(fileName || "model.stl");
+
+  // Skapa File om möjligt (för name/type), annars Blob räcker för uploadBytesResumable
+  try {
+    return new File([blob], fileName || "model.stl", { type });
+  } catch {
+    blob.name = fileName || "model.stl";
+    blob.type = type;
+    return blob;
+  }
+}
+
 const LoadingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Stöd båda varianter:
   const file = location.state?.file || null;
+  const stlUrl = location.state?.stlUrl || "";
+  const fileName = location.state?.fileName || "";
+
   const startedRef = useRef(false);
 
   const [progress, setProgress] = useState(0);
@@ -24,23 +52,32 @@ const LoadingPage = () => {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    if (!file) {
-      setError("Ingen fil hittades. Gå tillbaka och välj en STL-fil.");
-      return;
-    }
-
     const run = async () => {
       try {
         setError("");
         setProgress(0);
         setText("Förbereder...");
 
-        // ✅ delay så man hinner se din animation
         await new Promise((r) => setTimeout(r, START_DELAY_MS));
+
+        // 1) Välj källa för filen
+        let uploadable = file;
+
+        // Om vi inte har file men har stlUrl → bygg en fil via fetch
+        if (!uploadable && stlUrl) {
+          setText("Förbereder fil...");
+          uploadable = await fileFromObjectUrl(stlUrl, fileName);
+        }
+
+        if (!uploadable) {
+          setError("Ingen fil hittades. Gå tillbaka och välj en STL-fil.");
+          return;
+        }
 
         setText("Laddar upp din modell...");
 
-        const ext = file.name.split(".").pop()?.toLowerCase() || "stl";
+        const name = uploadable.name || fileName || "model.stl";
+        const ext = name.split(".").pop()?.toLowerCase() || "stl";
         const id = uuidv4();
 
         sessionStorage.setItem("cadUploadUUID", id);
@@ -49,11 +86,11 @@ const LoadingPage = () => {
         const fileRef = ref(storage, path);
 
         const metadata = {
-          contentType: file.type || "application/sla",
-          customMetadata: { originalName: file.name, uuid: id },
+          contentType: uploadable.type || guessContentTypeFromName(name),
+          customMetadata: { originalName: name, uuid: id },
         };
 
-        const uploadTask = uploadBytesResumable(fileRef, file, metadata);
+        const uploadTask = uploadBytesResumable(fileRef, uploadable, metadata);
 
         uploadTask.on(
           "state_changed",
@@ -73,7 +110,7 @@ const LoadingPage = () => {
             const url = await getDownloadURL(uploadTask.snapshot.ref);
 
             sessionStorage.setItem("cadDownloadUrl", url);
-            sessionStorage.setItem("cadOriginalName", file.name);
+            sessionStorage.setItem("cadOriginalName", name);
             sessionStorage.setItem("cadFilePath", path);
 
             setText("Klart! Skickar vidare...");
@@ -81,7 +118,7 @@ const LoadingPage = () => {
             navigate("/configure", {
               state: {
                 downloadUrl: url,
-                originalName: file.name,
+                originalName: name,
                 filePath: path,
                 fileId: id,
               },
@@ -96,7 +133,7 @@ const LoadingPage = () => {
     };
 
     run();
-  }, [file, navigate]);
+  }, [file, stlUrl, fileName, navigate]);
 
   return (
     <div className={styles.Load}>

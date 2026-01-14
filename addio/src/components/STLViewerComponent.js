@@ -130,7 +130,8 @@ const STLViewerComponent = ({
     container.innerHTML = "";
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0);
+    scene.background = new THREE.Color(0xf6f6f6);
+
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
@@ -170,7 +171,7 @@ const STLViewerComponent = ({
     controls.minPolarAngle = Math.PI * 0.15;
     controls.maxPolarAngle = Math.PI * 0.85;
     controls.minDistance = 50;
-    controls.maxDistance = 3000;
+    controls.maxDistance = 500;
     controlsRef.current = controls;
 
     let rafId = 0;

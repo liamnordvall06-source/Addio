@@ -17,7 +17,10 @@ const ConfigurePage = () => {
 
                     <div className={styles.verticalDivider} />
 
-                    <STLViewerComponent />
+                    <div className={styles.viewerWrapper}>
+                        <STLViewerComponent />
+                    </div>
+
 
                 </div>
             </div>
