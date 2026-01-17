@@ -8,22 +8,15 @@ import STLViewerComponent from "../components/STLViewerComponent.js";
 const ConfigurePage = () => {
   return (
     <div className={styles.mainContainer}>
-      {/* SIDEBAR */}
       <SidebarComponent />
 
-      {/* MAIN CONTENT */}
       <div className={styles.mainContentContainer}>
-        {/* VÄNSTER KOLUMN */}
-        <div className={styles.leftColumn}>
+        <div className={styles.contentRow}>
           <ConfigureComponent />
-        </div>
 
-        {/* DIVIDER */}
-        <div className={styles.verticalDivider} />
-
-        {/* HÖGER KOLUMN */}
-        <div className={styles.rightColumn}>
-          <div className={styles.viewerWrapper}>
+          <div className={styles.verticalDivider} />
+          <div className={styles.STLInnerContainer}>
+            <h1>Förhandsvisning</h1>
             <STLViewerComponent />
           </div>
         </div>

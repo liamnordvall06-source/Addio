@@ -1,5 +1,6 @@
 .mainContainer {
-    width: calc(100% / 5 * 2);
+    width: min(700px, 100%);
+    margin: 0 50px 0 auto;
     gap: 30px;
     display: flex;
     justify-content: right;

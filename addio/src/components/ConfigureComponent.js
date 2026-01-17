@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import styles from "./ConfigureComponent.module.css";
 
 const ConfigureComponent = () => {
-
+  
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    
 
   };
 
