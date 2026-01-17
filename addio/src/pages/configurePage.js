@@ -5,28 +5,31 @@ import ConfigureComponent from "../components/ConfigureComponent.js";
 import UploadCADComponent from "../components/uploadCADCompnent.js";
 import STLViewerComponent from "../components/STLViewerComponent.js";
 
-
 const ConfigurePage = () => {
-    return (
-        <div className={styles.mainContainer}>
-            <SidebarComponent />
+  return (
+    <div className={styles.mainContainer}>
+      {/* SIDEBAR */}
+      <SidebarComponent />
 
-            <div className={styles.mainContentContainer}>
-                <div className={styles.contentRow}>
-                    <ConfigureComponent />
-
-                    <div className={styles.verticalDivider} />
-
-                    <div className={styles.viewerWrapper}>
-                        <STLViewerComponent />
-                    </div>
-
-
-                </div>
-            </div>
+      {/* MAIN CONTENT */}
+      <div className={styles.mainContentContainer}>
+        {/* VÄNSTER KOLUMN */}
+        <div className={styles.leftColumn}>
+          <ConfigureComponent />
         </div>
-    );
-}
 
+        {/* DIVIDER */}
+        <div className={styles.verticalDivider} />
+
+        {/* HÖGER KOLUMN */}
+        <div className={styles.rightColumn}>
+          <div className={styles.viewerWrapper}>
+            <STLViewerComponent />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default ConfigurePage;
