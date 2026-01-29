@@ -28,43 +28,20 @@ const ChooseTechnologyComponent = () => {
                     </div>
                 </button>
 
-                <button
-                    className={getButtonClass("SLA")}
-                    onClick={() => setSelectedTech("SLA")}
-                    disabled
-                >
-                    <img src={SLALogo} alt="SLA" />
-                    <div className={styles.textContainer}>
-                        <h3>Stereolithography</h3>
-                        <p>SLA (Coming soon)</p>
-                    </div>
-                </button>
-
-                <button
-                    className={getButtonClass("SLS")}
-                    onClick={() => setSelectedTech("SLS")}
-                    disabled
-                >
-                    <img src={SLSLogo} alt="SLS" />
-                    <div className={styles.textContainer}>
-                        <h3>Selective Laser Sintering</h3>
-                        <p>SLS (Coming soon)</p>
-                    </div>
-                </button>
 
                 <div className={styles.laserEngravingBox}>
                     <div className={styles.textContainer}>
-                        <h3>Lasermärkning</h3>
+                        <h3>Andra tekniker?</h3>
                         <p>
-                            Prata med vårat säljteam om du behöver märkning på
-                            dina detaljer. Vi använder UV-teknik för att
-                            gravera på dina detaljer.{" "}
-                            <a href="/" className={styles.learnMoreBtn}>
+                            Prata med vårat säljteam om du behöver andra tekniker för dina utskrifter.
+                            
+                            {" "}
+                            <a href="https://brandit3d.com/" className={styles.learnMoreBtn}>
                                 Läs mer
                             </a>
                         </p>
                         <button className={styles.getStartedBtn}>
-                            Kom igång
+                            Kontaka oss
                         </button>
                     </div>
                 </div>

@@ -31,7 +31,7 @@
 }
 
 .STLInnerContainer {
-   width: min(700px, 100%);
+  width: min(700px, 100%);
   margin: 0 auto 0 50px;
   padding: 48px 16px;
   display: flex;
