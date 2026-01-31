@@ -184,14 +184,15 @@ app.post("/createPaymentLink", async (req, res) => {
       return res.status(500).json({ error: "quote missing valid pricing.totalOre" });
     }
 
-    // ✅ must be absolute URLs
-    const successUrl = `https://brandit3d.com/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `https://brandit3d.com/cancel?quote_id=${encodeURIComponent(quoteId)}`;
+    const successUrl = `https://addio-11148.web.app/`;
+    const cancelUrl = `https://addio-11148.web.app/`;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       locale: "sv",
       customer_creation: "always",
+
+      billing_address_collection: "required", // 👈 VIKTIG
 
       client_reference_id: quoteId,
       metadata: { quote_id: quoteId },
@@ -210,6 +211,7 @@ app.post("/createPaymentLink", async (req, res) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
     });
+
 
     await quoteSnap.ref.update({
       stripeSessionId: session.id,

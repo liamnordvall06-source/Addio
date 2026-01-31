@@ -285,37 +285,26 @@ const ConfigureComponent = () => {
           <div className={styles.quoteCard}>
             <div className={styles.quoteHeader}>
               <div>
-                <div className={styles.quoteTitle}>Din offert</div>
-                <div className={styles.quoteSub}>
-                  {quote.input?.quantity} st • {quote.input?.infill}% infill
-                </div>
-              </div>
-
-              <div className={styles.quoteTotal}>
-                {Number(quote.pricing?.total ?? 0).toFixed(2)} kr
+                <div className={styles.quoteTitle}>Din offert #{quote.input.fileId}</div>
               </div>
             </div>
 
             <div className={styles.quoteGrid}>
               <div className={styles.quoteRow}>
-                <span>Volym</span>
-                <span>{quote.geometry?.volumeCm3} cm³</span>
+                <span>Startavgift: </span>
+                <span>{quote.pricing?.setupFee} kr</span>
               </div>
               <div className={styles.quoteRow}>
-                <span>Vikt</span>
-                <span>{quote.geometry?.weightG} g</span>
-              </div>
-              <div className={styles.quoteRow}>
-                <span>Materialkostnad</span>
-                <span>{quote.pricing?.materialCost} kr</span>
-              </div>
-              <div className={styles.quoteRow}>
-                <span>Styckpris</span>
+                <span>Styckpris: </span>
                 <span>{quote.pricing?.unitPrice} kr</span>
               </div>
-              <div className={styles.quoteRow}>
-                <span>Startavgift</span>
-                <span>{quote.pricing?.setupFee} kr</span>
+              <div className={styles.quantity}>
+                <span>Antal: </span>
+                {Number(quote.input?.quantity).toFixed(0)} st
+              </div>
+              <div className={styles.quoteTotal}>
+                <span>Total: </span>
+                {Number(quote.pricing?.total ?? 0).toFixed(2)} kr
               </div>
             </div>
 
@@ -328,7 +317,7 @@ const ConfigureComponent = () => {
                 onClick={goToCheckout}
                 disabled={checkoutDisabled}
               >
-                {creatingCheckout ? "Skapar betalning…" : "Gå till kassan"}
+                {creatingCheckout ? "Skapar betalning…" : "Beställ"}
               </button>
             </div>
           </div>
