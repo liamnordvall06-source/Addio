@@ -1,202 +1,270 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
+const { defineSecret } = require("firebase-functions/params");
+const { fetch, FormData } = require("undici");
+const { openAsBlob } = require("fs"); 
+const fs = require("fs");
+const path = require("path");
+// eyJ1c2VyX2lkIjoiZmMzN2YxMzUtMzRlOC00YzA4LThiY2YtNDQ3YWJmY2MyYzMyIiwiZW1haWwiOiJsaWFtbm9yZHZhbGwwNkBnbWFpbC5jb20iLCJ0b2tlbl9pZCI6IjFiN2ZlZTU2LTZhYTEtNDAxMC04NDMwLWYzNjhiOGRjNTQwNSIsIm5hbWUiOiJRb3V0YXRpb25Ub2tlbiJ9
 const express = require("express");
 const admin = require("firebase-admin");
-
-const Stripe = require("stripe")
-
-const stripe = new Stripe("sk_test_51SuzWbRyRkrtaFuNZWpETGjbkQAoufaBmRPUpVQPyz2I5clxGwOetqJHvXhX9aqYrdPTGPf5FjyvxmqBMpMdxHcF00vALvcVV5");
-
 
 setGlobalOptions({ maxInstances: 10 });
 
 admin.initializeApp();
-const db = admin.firestore();
 
 const app = express();
-
-
 app.use(express.json({ limit: "10mb" }));
 
-app.get("/materials", async (req, res) => {
+const CLOUDSLICER_TOKEN = defineSecret("CLOUDSLICER_TOKEN");
+const STRIPE_TOKEN = defineSecret("STRIPE_TOKEN");
+
+
+app.post("/file", async (req, res) => {
+  let tmpPath = null;
+
   try {
-    const snapshot = await db.collection("materials").get();
-    const materials = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    return res.status(200).json({ materials });
+    const storagePath = req.header("X-Storage-Path");
+    const fileName = req.header("X-File-Name");
+
+    if (!storagePath || !fileName) {
+      return res.status(400).json({
+        error: "Missing X-Storage-Path or X-File-Name header",
+      });
+    }
+
+    tmpPath = path.join("/tmp", fileName);
+
+    await admin.storage().bucket().file(storagePath).download({
+      destination: tmpPath,
+    });
+
+    const form = new FormData();
+    form.append("file", await openAsBlob(tmpPath), fileName);
+
+    const response = await fetch("https://api.cloudslicer3d.com/v1/file", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
+        Accept: "application/json",
+      },
+      body: form,
+    });
+
+    const text = await response.text();
+    return res.status(response.status).send(text);
   } catch (e) {
-    logger.error("api_error", e);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error(e);
+    return res.status(500).json({ error: e.message });
+  } finally {
+
+    if (tmpPath) {
+      fs.promises.unlink(tmpPath).catch(() => {});
+    }
   }
 });
 
 
-app.post("/getQoute", async (req, res) => {
+app.get("/material", async (req, res) => {
   try {
-    const { quantity, materialId, infill, color, fileId } = req.body || {};
 
-    if (!fileId) return res.status(400).json({ error: "fileId is required" });
-    if (!materialId) return res.status(400).json({ error: "materialId is required" });
-
-    const qty = Number(quantity);
-    const inf = Number(infill);
-
-    if (!Number.isFinite(qty) || qty <= 0) {
-      return res.status(400).json({ error: "quantity must be a positive number" });
-    }
-    if (!Number.isFinite(inf) || inf < 0 || inf > 100) {
-      return res.status(400).json({ error: "infill must be 0..100" });
-    }
-
-    const materialSnap = await db.collection("materials").doc(materialId).get();
-    if (!materialSnap.exists) return res.status(404).json({ error: "material not found" });
-
-    const material = materialSnap.data();
-
-    const pricePerGram = Number(material.cost);
-    const densityGPerCm3 = Number(material.density);
-    if (!Number.isFinite(pricePerGram) || !Number.isFinite(densityGPerCm3)) {
-      return res.status(500).json({ error: "Material missing cost/density" });
-    }
-
-    // --- Download STL ---
-    const bucket = admin.storage().bucket();
-    const fileRef = bucket.file(fileId);
-
-    const [exists] = await fileRef.exists();
-    if (!exists) {
-      return res.status(404).json({ error: "STL not found in storage for fileId" });
-    }
-
-    const [stlBuffer] = await fileRef.download();
-
-    // --- Parse STL ---
-    let triangles;
-    if (looksLikeBinarySTL(stlBuffer)) {
-      triangles = parseBinarySTL(stlBuffer);
-    } else {
-      triangles = parseAsciiSTL(stlBuffer.toString("utf8"));
-    }
-
-    if (!triangles || triangles.length === 0) {
-      return res.status(400).json({ error: "Could not parse STL (no triangles found)" });
-    }
-
-    // --- Geometry ---
-    const volumeUnits3 = computeVolumeFromTriangles(triangles);
-
-    const assumeMillimeters = true;
-    const volumeCm3 = assumeMillimeters ? volumeUnits3 / 1000 : volumeUnits3;
-
-    const infillRatio = Math.max(0.15, inf / 100);
-    const usedVolumeCm3 = volumeCm3 * infillRatio;
-
-    const weightG = usedVolumeCm3 * densityGPerCm3;
-    const materialCost = weightG * pricePerGram;
-
-    // --- Pricing (YOUR VALUES, unchanged) ---
-    const setupFee = 720;
-    const handlingFeePerUnit = 25;
-    const overheadPct = 2.5;
-
-    const unitSubtotal = materialCost + handlingFeePerUnit;
-    const unitPrice = unitSubtotal * (1 + overheadPct);
-    const total = setupFee + unitPrice * qty;
-
-    // Convert SEK to öre for Stripe
-    const totalOre = Math.round(total * 100);
-
-    // Save quote to Firestore (collection: "qoutes")
-    const quoteRef = await db.collection("qoutes").add({
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: "pending_payment",
-
-      // keep your inputs so you can reproduce pricing later
-      input: { quantity: qty, materialId, infill: inf, color, fileId },
-
-      // store what you calculated
-      geometry: {
-        triangles: triangles.length,
-        volumeUnits3: round2(volumeUnits3),
-        volumeCm3: round2(volumeCm3),
-        infillRatio,
-        usedVolumeCm3: round2(usedVolumeCm3),
-        weightG: round2(weightG),
-      },
-      pricing: {
-        pricePerGram,
-        densityGPerCm3,
-        materialCost: round2(materialCost),
-        setupFee,
-        handlingFeePerUnit,
-        overheadPct,
-        unitPrice: round2(unitPrice),
-        totalSek: round2(total),
-        totalOre,              // <-- important for Stripe
-        currency: "sek",
+    const response = await fetch("https://api.cloudslicer3d.com/v1/filament", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
       }
+    })
+
+    const data = await response.json();
+
+    return res.status(response.status).json(data);
+
+
+  } catch (e) {
+    logger.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+})
+
+
+app.post("/qoute", async (req, res) => {
+  try {
+
+    const jsonObj = req.body;
+
+    obj = {
+      "printer_id": "22d3c057b9af43f297b963f979aca0a5",
+      "filament_id": jsonObj.materialId,
+      "slicer_model": "bambu_studio",
+      "pricing_config": {
+        "currency": "USD",
+        "cost_per_hour": 0.4,
+        "cost_per_gram": 0.02,
+        "base_price": 0,
+        "printer_watts": 100,
+        "cost_per_kwh": 0.12
+      },
+      "print_settings": {
+        "name": "Default Print Settings",
+        "layers_and_perimeters": {
+          "layer_height": {
+            "layer_height": 0.2,
+            "first_layer_height": 0.2,
+            "top_layers": 5,
+            "bottom_layers": 3,
+            "perimeters": 3
+          },
+          "advanced": {
+            "detect_thin_walls": false,
+            "thick_bridges": true,
+            "seam_position": "nearest",
+            "perimeter_generator": "classic",
+            "elefant_foot_compensation": 0.15,
+            "xy_size_compensation": 0,
+            "xy_hole_compensation": 0
+          }
+        },
+        "extrusion_width": {
+          "default": 0.45,
+          "first_layer": 0.42,
+          "external_perimeter": 0.4,
+          "perimeter": 0.45,
+          "infill": 0.45,
+          "solid_infill": 0.45,
+          "top_infill": 0.4,
+          "support": 0.42
+        },
+        "infill": {
+          "fill_density": `${jsonObj.infill}%`,
+          "fill_pattern": "grid",
+          "fill_angle": 45,
+          "infill_anchor": 2.5,
+          "infill_anchor_max": 15,
+          "infill_overlap": "25%",
+          "top_fill_pattern": "monotoniclines",
+          "ironing_type": "top",
+          "solid_infill_every_layers": 0,
+          "combine_infill_every_layers": 0
+        },
+        "skirt_and_brim": {
+          "skirt": {
+            "loops": 0,
+            "distance": 2,
+            "height": 2
+          },
+          "brim": {
+            "type": "no_brim",
+            "width": 5,
+            "separation_gap": 0.1
+          }
+        },
+        "support_material": {
+          "enable": false,
+          "style": "grid",
+          "pattern": "rectilinear",
+          "threshold_angle": 40,
+          "buildplate_only": false,
+          "top_z_distance": 0.15,
+          "xy_distance": 0.5,
+          "spacing": 2,
+          "top_interface_layers": 2,
+          "bottom_interface_layers": 0,
+          "interface_pattern": "rectilinear",
+          "interface_spacing": 0,
+          "dont_support_bridges": false,
+          "raft_layers": 0,
+          "raft_first_layer_expansion": 2
+        },
+        "speed": {
+          "perimeters": 300,
+          "small_perimeters": "50%",
+          "external_perimeters": 200,
+          "infill": 270,
+          "solid_infill": 250,
+          "top_solid_infill": 200,
+          "support_material": 150,
+          "support_material_interface": 80,
+          "gap_fill": 250,
+          "ironing": 15,
+          "travel": 500,
+          "travel_z": 0,
+          "first_layer": 50,
+          "first_layer_infill": 105,
+          "bridge": 50
+        },
+        "acceleration": {
+          "default": 10000,
+          "first_layer": 500,
+          "perimeter": 0,
+          "external_perimeter": 5000,
+          "infill": "100%",
+          "solid_infill": 0,
+          "top_solid_infill": 2000,
+          "travel": 10000,
+          "bridge": 0
+        },
+        "overhang": {
+          "enable_overhang_speed": true,
+          "speed_0": 0,
+          "speed_1": 50,
+          "speed_2": 30,
+          "speed_3": 10
+        },
+        "wipe_tower": {
+          "enable": false,
+          "width": 60
+        },
+        "output_options": {
+          "spiral_vase": false,
+          "print_sequence": "by layer"
+        }
+      }
+    }
+
+    const response = await fetch(`https://api.cloudslicer3d.com/v1/quote/${jsonObj.fileId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(obj)
+    })
+
+    const data = await response.json();
+
+    res.status(200).json({
+      partPrice: data.pricing.total_price,
+      startPrice: 15,
+      quantity: jsonObj.quantity,
+      shippgingCost: 12,
+      totalPrice: (data.pricing.total_price * parseInt(jsonObj.quantity)) + 15 + 12
     });
 
-    return res.status(200).json({
-      success: true,
-      quoteId: quoteRef.id,
-      input: { quantity: qty, materialId, infill: inf, color, fileId },
-      geometry: {
-        triangles: triangles.length,
-        volumeUnits3: round2(volumeUnits3),
-        volumeCm3: round2(volumeCm3),
-        infillRatio,
-        usedVolumeCm3: round2(usedVolumeCm3),
-        weightG: round2(weightG),
-      },
-      pricing: {
-        pricePerGram,
-        densityGPerCm3,
-        materialCost: round2(materialCost),
-        setupFee,
-        handlingFeePerUnit,
-        overheadPct,
-        unitPrice: round2(unitPrice),
-        total: round2(total),
-      },
-    });
   } catch (e) {
-    logger.error("api_error", e);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error(e);
+    return res.status(500).json({ error: jsonObj.fileId });
   }
-});
+})
+
 
 app.post("/createPaymentLink", async (req, res) => {
   try {
     const { quoteId } = req.body || {};
-    if (!quoteId) return res.status(400).json({ error: "quoteId is required" });
-
     const quoteSnap = await db.collection("qoutes").doc(quoteId).get();
-    if (!quoteSnap.exists) return res.status(404).json({ error: "quote not found" });
-
     const quote = quoteSnap.data();
     const totalOre = Number(quote?.pricing?.totalOre);
 
-    if (!Number.isFinite(totalOre) || totalOre <= 0) {
-      return res.status(500).json({ error: "quote missing valid pricing.totalOre" });
-    }
-
-    const successUrl = `https://addio-11148.web.app/`;
-    const cancelUrl = `https://addio-11148.web.app/`;
+    const stripe = new Stripe(STRIPE_TOKEN.value());
+  
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       locale: "sv",
       customer_creation: "always",
-
-      billing_address_collection: "required", // 👈 VIKTIG
-
+      billing_address_collection: "required",
       client_reference_id: quoteId,
       metadata: { quote_id: quoteId },
-
       line_items: [
         {
           quantity: 1,
@@ -207,11 +275,9 @@ app.post("/createPaymentLink", async (req, res) => {
           },
         },
       ],
-
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: `https://addio-11148.web.app/`,
+      cancel_url: `https://addio-11148.web.app/`,
     });
-
 
     await quoteSnap.ref.update({
       stripeSessionId: session.id,
@@ -221,121 +287,16 @@ app.post("/createPaymentLink", async (req, res) => {
 
     return res.json({ url: session.url });
   } catch (e) {
-    // 🔥 Log the real Stripe error so you can see what's wrong
-    logger.error("stripe_create_checkout_session_failed", {
-      message: e?.message,
-      type: e?.type,
-      code: e?.code,
-      param: e?.param,
-      raw: e?.raw,
-      stack: e?.stack,
-    });
-
-    // Send a useful error to client (still safe)
-    return res.status(500).json({
-      error: e?.message || "Internal server error",
-    });
+    logger.error("stripe_create_checkout_session_failed", e);
+    return res.status(500).json({ error: e?.message || "Internal server error" });
   }
 });
-
-
-
-
-function computeVolumeFromTriangles(tris) {
-  let sum = 0;
-  for (const t of tris) {
-    const [p1, p2, p3] = t;
-    const cx = p2[1] * p3[2] - p2[2] * p3[1];
-    const cy = p2[2] * p3[0] - p2[0] * p3[2];
-    const cz = p2[0] * p3[1] - p2[1] * p3[0];
-    sum += p1[0] * cx + p1[1] * cy + p1[2] * cz;
-  }
-  return Math.abs(sum) / 6;
-}
-
-
-function parseBinarySTL(buffer) {
-  // Guard: must be at least header + triCount
-  if (buffer.length < 84) return [];
-
-  const triCount = buffer.readUInt32LE(80);
-  const expected = 84 + triCount * 50;
-
-  // Guard: if triangle count is bogus, don't crash
-  if (expected > buffer.length) return [];
-
-  const tris = [];
-  let offset = 84;
-
-  for (let i = 0; i < triCount; i++) {
-    // normal (12 bytes)
-    offset += 12;
-
-    const v1 = [buffer.readFloatLE(offset), buffer.readFloatLE(offset + 4), buffer.readFloatLE(offset + 8)];
-    offset += 12;
-
-    const v2 = [buffer.readFloatLE(offset), buffer.readFloatLE(offset + 4), buffer.readFloatLE(offset + 8)];
-    offset += 12;
-
-    const v3 = [buffer.readFloatLE(offset), buffer.readFloatLE(offset + 4), buffer.readFloatLE(offset + 8)];
-    offset += 12;
-
-    tris.push([v1, v2, v3]);
-
-    // attr count (2 bytes)
-    offset += 2;
-  }
-
-  return tris;
-}
-
-
-function parseAsciiSTL(text) {
-  const tris = [];
-  const lines = text.split(/\r?\n/);
-  const verts = [];
-
-  for (const line of lines) {
-    const m = line.trim().match(/^vertex\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)$/);
-    if (m) {
-      verts.push([parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])]);
-      if (verts.length === 3) {
-        tris.push([verts[0], verts[1], verts[2]]);
-        verts.length = 0;
-      }
-    }
-  }
-  return tris;
-}
-
-
-function looksLikeBinarySTL(buffer) {
-  if (buffer.length < 84) return false;
-
-  const triCount = buffer.readUInt32LE(80);
-  const expected = 84 + triCount * 50;
-
-  // If expected matches length, almost certainly binary
-  if (expected === buffer.length) return true;
-
-  // If it looks like ASCII at the start, treat as ASCII
-  const start = buffer.slice(0, 200).toString("utf8");
-  if (start.startsWith("solid") && start.includes("facet")) return false;
-
-  // Otherwise, likely binary
-  return true;
-}
-
-
-function round2(n) {
-  return Math.round(n * 100) / 100;
-}
-
 
 
 exports.api = onRequest(
   {
     cors: true,
+    secrets: [CLOUDSLICER_TOKEN, STRIPE_TOKEN],
   },
   app
 );

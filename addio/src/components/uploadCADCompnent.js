@@ -5,34 +5,40 @@ import STLViewerComponent from "./STLViewerComponent";
 import { storage } from "../middleware/firebase"; // adjust path
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+
 const UploadCADComponent = () => {
   const [file, setFile] = useState(null);
   const [fileBody, setFileBody] = useState(null);
   const navigate = useNavigate();
 
 const goNext = async () => {
-  if (!file || !fileBody) return;
+  if (!file) return;
 
-    try {
-      const ext = file.name.split(".").pop();
-      const storageFileName = `uploads/${crypto.randomUUID()}.${ext}`;
+  try {
+    const ext = file.name.split(".").pop();
+    const storageFileName = `uploads/${crypto.randomUUID()}.${ext}`;
 
-      const storageRef = ref(storage, storageFileName);
-      await uploadBytes(storageRef, file);
+    const storageRef = ref(storage, storageFileName);
+    await uploadBytes(storageRef, file);
 
-      const downloadUrl = await getDownloadURL(storageRef);
+    const response = await fetch("https://api-iinmezl24q-uc.a.run.app/file", {
+      method: "POST",
+      headers: {
+        "X-Storage-Path": storageFileName,
+        "X-File-Name": file.name,        
+      },
+    });
 
-      sessionStorage.setItem("uploadedFilePath", storageFileName);
-      sessionStorage.setItem("uploadedFileName", storageFileName.split("/").pop());
-      sessionStorage.setItem("uploadedFileUrl", downloadUrl);
+    const data = await response.json();
+    sessionStorage.setItem("fileId", data.file_id);
 
-      navigate("/configure", {
-        state: { filePath: storageFileName, fileUrl: downloadUrl },
-      });
-    } catch (err) {
-      console.error("Upload failed:", err);
-    }
-  };
+    navigate("/configure")
+
+  } catch (err) {
+    console.error("Upload failed:", err);
+  }
+};
+
 
 
   const handleFileChange = (selectedFile) => {

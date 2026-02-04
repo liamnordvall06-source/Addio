@@ -16,8 +16,8 @@ const ConfigurePage = () => {
 
           <div className={styles.verticalDivider} />
           <div className={styles.STLInnerContainer}>
-            <h1>Förhandsvisning</h1>
-            <STLViewerComponent />
+            {/* <h1>Förhandsvisning</h1>
+            <STLViewerComponent /> */}
           </div>
         </div>
       </div>
