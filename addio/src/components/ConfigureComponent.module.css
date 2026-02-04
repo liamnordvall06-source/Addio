@@ -107,7 +107,7 @@ h1 {
     padding: 20px 0 10px 0;
 }
 
-.quoteFooter button {
+.qouteComponent button {
     text-decoration: none;
     color: #ffffff;
     border: none;
@@ -118,5 +118,26 @@ h1 {
 }
 
 .quoteTotal {
+    margin-top: 20px;
+}
+
+.qouteComponent {
+    margin-top: 100px;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 30px);
+    gap: 5px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #ffffff;
+    border: 1px solid #cacaca;
+}
+
+.qouteComponent p {
+    margin: 0;
+    padding: 0;
+}
+
+.qouteComponent button {
     margin-top: 20px;
 }

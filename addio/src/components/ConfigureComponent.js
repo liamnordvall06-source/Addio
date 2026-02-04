@@ -11,8 +11,7 @@ const ConfigureComponent = () => {
   const [selectedMaterial, setSelectedMaterial] = useState("");
   const [selectedInfill, setSelectedInfill] = useState("");
 
-
-
+  const [qoute, setQoute] = useState();
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -67,15 +66,44 @@ const ConfigureComponent = () => {
     }
 
     const data = await response.json();
+    setQoute(data);
     console.log(data);
     return data;
-
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     await fetchQoute();
   };
+
+
+const checkoutHandler = async () => {
+  try {
+    const response = await fetch(
+      "https://api-iinmezl24q-uc.a.run.app/createPaymentLink",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Quote-Id": qoute.quoteId, // btw: qoute → quote 😅
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Payment link creation failed");
+    }
+
+    const data = await response.json();
+
+    // 🔥 Redirect to Stripe Checkout
+    window.location.href = data.url;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+
 
 
   return (
@@ -140,6 +168,18 @@ const ConfigureComponent = () => {
             Få offert
           </button>
         </div>
+
+
+        { qoute ? 
+          <div className={styles.qouteComponent}>
+            <p>Styckpris: {Math.round(qoute?.partPrice * 9)} kr</p>
+            <p>Kvantitet: {Math.round(qoute?.quantity)} st</p>
+            <p>Fraktkostnad: {Math.round(qoute?.shippingCost * 9)} kr</p>
+            <p>Totalpris: {Math.round(qoute?.totalPrice * 9)} kr</p>
+            <button onClick={() => checkoutHandler()}>Gå till kassa</button>
+          </div> : <></>
+        }
+
       </form>
     </div>
   );

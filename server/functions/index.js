@@ -9,10 +9,15 @@ const path = require("path");
 // eyJ1c2VyX2lkIjoiZmMzN2YxMzUtMzRlOC00YzA4LThiY2YtNDQ3YWJmY2MyYzMyIiwiZW1haWwiOiJsaWFtbm9yZHZhbGwwNkBnbWFpbC5jb20iLCJ0b2tlbl9pZCI6IjFiN2ZlZTU2LTZhYTEtNDAxMC04NDMwLWYzNjhiOGRjNTQwNSIsIm5hbWUiOiJRb3V0YXRpb25Ub2tlbiJ9
 const express = require("express");
 const admin = require("firebase-admin");
+const Stripe = require("stripe");
+
+admin.initializeApp();
+
+const db = admin.firestore();
+
 
 setGlobalOptions({ maxInstances: 10 });
 
-admin.initializeApp();
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -89,9 +94,11 @@ app.get("/material", async (req, res) => {
 
 
 app.post("/qoute", async (req, res) => {
+  let jsonObj;
+
   try {
 
-    const jsonObj = req.body;
+    jsonObj = req.body;
 
     obj = {
       "printer_id": "22d3c057b9af43f297b963f979aca0a5",
@@ -221,24 +228,59 @@ app.post("/qoute", async (req, res) => {
         }
       }
     }
+ const response = await fetch(
+      `https://api.cloudslicer3d.com/v1/quote/${jsonObj.fileId}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(obj),
+      }
+    );
 
-    const response = await fetch(`https://api.cloudslicer3d.com/v1/quote/${jsonObj.fileId}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(obj)
-    })
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return res.status(502).json({ error: "Cloudslicer error", details: text });
+    }
 
     const data = await response.json();
 
-    res.status(200).json({
-      partPrice: data.pricing.total_price,
-      startPrice: 15,
-      quantity: jsonObj.quantity,
-      shippgingCost: 12,
-      totalPrice: (data.pricing.total_price * parseInt(jsonObj.quantity)) + 15 + 12
+    const partPrice = Number(data?.pricing?.total_price ?? 0);
+    const quantity = parseInt(jsonObj.quantity, 10) || 1;
+
+    const startPrice = 15;
+    const shippingCost = 12;
+    const totalPrice = partPrice * quantity + startPrice + shippingCost;
+
+    const quoteDoc = {
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: "created",
+      fileId: jsonObj.fileId,
+      materialId: jsonObj.materialId,
+      infill: jsonObj.infill,
+      quantity,
+      pricing: {
+        partPrice,
+        startPrice,
+        shippingCost,
+        totalPrice,
+        currency: data?.pricing?.currency || "USD",
+      },
+    };
+
+    const docRef = await db.collection("quotes").add(quoteDoc);
+    const quoteId = docRef.id;
+
+    // 2) Returnera till klienten
+    return res.status(200).json({
+      partPrice,
+      startPrice,
+      quantity,
+      shippingCost,
+      totalPrice,
+      quoteId,
     });
 
   } catch (e) {
@@ -250,10 +292,10 @@ app.post("/qoute", async (req, res) => {
 
 app.post("/createPaymentLink", async (req, res) => {
   try {
-    const { quoteId } = req.body || {};
-    const quoteSnap = await db.collection("qoutes").doc(quoteId).get();
+    const quoteId = req.headers["x-quote-id"];
+    const quoteSnap = await db.collection("quotes").doc(quoteId).get();
     const quote = quoteSnap.data();
-    const totalOre = Number(quote?.pricing?.totalOre);
+    const totalOre = Math.round(Number(quote?.pricing?.totalPrice) * 100 * 9);
 
     const stripe = new Stripe(STRIPE_TOKEN.value());
   
@@ -261,6 +303,10 @@ app.post("/createPaymentLink", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       locale: "sv",
+
+      // Force at least one valid method:
+      payment_method_types: ["card"],
+
       customer_creation: "always",
       billing_address_collection: "required",
       client_reference_id: quoteId,
@@ -275,8 +321,8 @@ app.post("/createPaymentLink", async (req, res) => {
           },
         },
       ],
-      success_url: `https://addio-11148.web.app/`,
-      cancel_url: `https://addio-11148.web.app/`,
+      success_url: "https://addio-11148.web.app/",
+      cancel_url: "https://addio-11148.web.app/",
     });
 
     await quoteSnap.ref.update({
