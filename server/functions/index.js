@@ -16,7 +16,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({ maxInstances: 20 });
 
 
 const app = express();
@@ -94,13 +94,11 @@ app.get("/material", async (req, res) => {
 
 
 app.post("/qoute", async (req, res) => {
-  let jsonObj;
-
   try {
 
-    jsonObj = req.body;
+    const jsonObj = req.body;
 
-    obj = {
+    const obj = {
       "printer_id": "22d3c057b9af43f297b963f979aca0a5",
       "filament_id": jsonObj.materialId,
       "slicer_model": "bambu_studio",
@@ -284,9 +282,12 @@ app.post("/qoute", async (req, res) => {
     });
 
   } catch (e) {
-    logger.error(e);
-    return res.status(500).json({ error: jsonObj.fileId });
-  }
+  logger.error(e);
+  return res.status(500).json({
+    error: "Quote generation failed",
+    details: e.message,
+  });
+}
 })
 
 

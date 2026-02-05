@@ -40,6 +40,7 @@ const ConfigureComponent = () => {
   }, []);
 
   const fetchQoute = async () => {
+    try {
     const fileId = sessionStorage.getItem("fileId");
 
     if (!fileId) {
@@ -61,14 +62,18 @@ const ConfigureComponent = () => {
       body: JSON.stringify(jsonObj),
     });
 
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
-    }
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Request failed: ${response.status} - ${text}`);
+  }
 
     const data = await response.json();
     setQoute(data);
     console.log(data);
-    return data;
+  }
+  catch (e) {
+    console.log(e)
+  }
   };
 
   const handleSubmit = async (e) => {

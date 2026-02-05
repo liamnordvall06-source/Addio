@@ -4,6 +4,7 @@ import styles from "./uploadCADComponent.module.css";
 import STLViewerComponent from "./STLViewerComponent";
 import { storage } from "../middleware/firebase"; // adjust path
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 
 
 const UploadCADComponent = () => {
@@ -11,29 +12,43 @@ const UploadCADComponent = () => {
   const [fileBody, setFileBody] = useState(null);
   const navigate = useNavigate();
 
+
 const goNext = async () => {
   if (!file) return;
 
   try {
-    const ext = file.name.split(".").pop();
-    const storageFileName = `uploads/${crypto.randomUUID()}.${ext}`;
+    // 1) Keep extension, but sanitize/whitelist
+    const rawExt = (file.name.split(".").pop() || "").toLowerCase();
+    const allowed = new Set(["stl", "step", "stp", "3mf", "obj"]);
+    const ext = allowed.has(rawExt) ? rawExt : "stl";
 
-    const storageRef = ref(storage, storageFileName);
-    await uploadBytes(storageRef, file);
+    // 2) Build a safe storage path (this is what your backend must download)
+    const newFileName = `${uuidv4()}.${ext}`;
+    const storagePath = `uploads/${newFileName}`; // <- IMPORTANT: define it
 
+    // 3) Upload to Firebase Storage
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, file, {
+      contentType: file.type || "application/octet-stream",
+    });
+
+    // 4) Tell backend where it is + what name to use for /tmp
     const response = await fetch("https://api-iinmezl24q-uc.a.run.app/file", {
       method: "POST",
       headers: {
-        "X-Storage-Path": storageFileName,
-        "X-File-Name": file.name,        
+        "X-Storage-Path": storagePath,   // <- use the path you uploaded to
+        "X-File-Name": newFileName,      // <- safe filename for tmp + Cloudslicer
       },
     });
 
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Request failed: ${response.status} - ${text}`);
+    }
+
     const data = await response.json();
     sessionStorage.setItem("fileId", data.file_id);
-
-    navigate("/configure")
-
+    navigate("/configure");
   } catch (err) {
     console.error("Upload failed:", err);
   }
