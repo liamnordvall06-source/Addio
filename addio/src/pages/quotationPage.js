@@ -4,17 +4,44 @@ import HeaderComponent from "../components/headerComponent";
 import { storage } from "../middleware/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { BounceLoader } from "react-spinners";
+import { PuffLoader } from "react-spinners";
 import ModelPreview from "../components/ModelPreview";
+import { MdDeleteOutline } from "react-icons/md";
 
 const QuotationPage = () => {
 
     const [file, setFile] = useState(null);
     const [fileBody, setFileBody] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [loadingQuote, setLoadingQuote] = useState(false);
     const [fileId, setFileId] = useState("");
     const [previewUrl, setPreviewUrl] = useState("");
     const [fileExt, setFileExt] = useState("");
+    const [materials, setMaterials] = useState();
+
+    const [quantity, setQuantity] = useState(1);
+    const [materialId, setMaterialId] = useState("");
+    const [infill, setInfill] = useState(25);
+
+    const [quote, setQuote] = useState({partPrice: "--"});
+
+    useEffect(() => {
+        const fetchMaterial = async () => {
+            try {
+                const response = await fetch("https://api-iinmezl24q-uc.a.run.app/material");
+
+                const data = await response.json();
+
+                setMaterials(data);
+
+                setMaterialId(data[1].filament_id);
+            } catch (e) {
+                console.error(e.message);
+            }
+        }
+
+        fetchMaterial();
+    }, [])
 
     const uploadHandler = async () => {
         if (!file) return;
@@ -81,6 +108,50 @@ const QuotationPage = () => {
         uploadHandler();
     }, [file])
 
+    const handleDelete = () => {
+        setFile(0);
+        setFileBody(0);
+        setFileId(0);
+    }
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        fetchQoute();
+    }
+
+    const fetchQoute = async () => {
+        try {
+        setLoadingQuote(true);
+        const jsonObj = {
+            fileId,
+            quantity: quantity,
+            materialId: materialId,
+            infill: infill,
+        };
+
+        const response = await fetch("https://api-iinmezl24q-uc.a.run.app/qoute", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonObj),
+        });
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`Request failed: ${response.status} - ${text}`);
+        }
+
+        const data = await response.json();
+        setQuote(data);
+        setLoadingQuote(false);
+    }
+    catch (e) {
+        console.log(e)
+        setLoadingQuote(false);
+    }
+    };
+
     return (
         <div className={styles.mainContainer}>
 
@@ -117,7 +188,7 @@ const QuotationPage = () => {
                         </>
                         ) : 
                             <>
-                                <BounceLoader color="#4294FF" />
+                                <PuffLoader color="#4294FF" />
                                 <p>Uploading file...</p>
                             </>
                         }
@@ -128,32 +199,60 @@ const QuotationPage = () => {
                         {fileId ? (
                             <div className={styles.settingsContainer}>
 
-
                             <div className={styles.modelInformation}>
-                                <div className={styles.previewContainer}>
-                                    {previewUrl ? (
-                                        <ModelPreview url={previewUrl} ext={fileExt} />
-                                    ) : (
-                                        <p>Preparing preview…</p>
-                                    )}
-                                </div>
-                                <p>{file.name}</p>
+                                    <div className={styles.previewContainer}>
+                                        {previewUrl ? (
+                                            <ModelPreview url={previewUrl} ext={fileExt} />
+                                        ) : (
+                                            <p><PuffLoader color="#4294FF" /></p>
+                                        )}
+                                    </div>
+                                    <div className={styles.modelSpecification}>
+                                        <p><b>{file.name}</b></p>
+                                        <div>
+                                            <p>22x25x10 mm</p>
+                                            <p>5500 mm³</p>
+                                        </div>
+                                    </div>
+                                    <button className={styles.deleteBtn} onClick={() => handleDelete()}><MdDeleteOutline /></button>
                             </div>           
                                 
+                            <form onSubmit={handleSubmit} className={styles.configurationForm}>
+                                <label>Antal:</label>
+                                <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)}></input>
+
+                                <label>Material:</label>
+                                <div className={styles.materialsContainer}>
+                                {materials?.map(material => {
+                                    const isActive = materialId === material.filament_id;
+
+                                    return (
+                                    <button
+                                        type="button"
+                                        key={material.filament_id}
+                                        onClick={() => setMaterialId(material.filament_id)}
+                                        className={`${styles.materialBtn} ${isActive ? styles.active : ""}`}
+                                    >
+                                        {material.filament_name}
+                                    </button>
+                                    );
+                                })}
+                                </div>
+
+                                <label>Infill:</label>
+                                <input type="number" min="10" value={infill} onChange={(e) => setInfill(e.target.value)}></input> 
+
+                                <div className={styles.partPriceContainer}>
+                                    <label>Pris:</label>
+                                    <p><b>{loadingQuote ? <PuffLoader /> : quote?.partPrice * quote?.quantity + quote?.startPrice + " $"}</b></p>
+                                    <button type="submit" className={styles.updateBtn}>Uppdatera</button>
+                                </div>
+
+                            </form>
+
 
                             </div>
                         ) : null}
-
-                        
-
-
-
-
-
-
-
-           
-
                 </div>
                 <div className={styles.priceContainer}>
                     <div className={styles.btnContainer}>
@@ -164,6 +263,7 @@ const QuotationPage = () => {
                     </div>
                 </div>
             </div>
+            {/* <div className={styles.footer}></div> */}
         </div>
     );
 }

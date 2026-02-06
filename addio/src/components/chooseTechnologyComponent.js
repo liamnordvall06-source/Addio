@@ -28,7 +28,6 @@ const ChooseTechnologyComponent = () => {
                     </div>
                 </button>
 
-
                 <div className={styles.laserEngravingBox}>
                     <div className={styles.textContainer}>
                         <h3>Andra tekniker?</h3>
