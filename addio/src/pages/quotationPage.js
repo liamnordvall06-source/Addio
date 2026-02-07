@@ -12,7 +12,7 @@ import { MdDeleteOutline } from "react-icons/md";
 // Make success page
 // Make red text on cancel payment
 // Update env variables for new directive March
-
+// Structure the code into components
 
 const QuotationPage = () => {
 
