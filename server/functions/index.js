@@ -245,11 +245,15 @@ app.post("/qoute", async (req, res) => {
 
     const data = await response.json();
 
-    const partPrice = Number(data?.pricing?.total_price ?? 0);
+
+
+
+    const partPrice = Math.round(Number(data?.pricing?.total_price ?? 0) * 9);
     const quantity = parseInt(jsonObj.quantity, 10) || 1;
 
-    const startPrice = 15;
-    const shippingCost = 12;
+    const startPrice = 150;
+    const shippingCost = 129;
+
     const totalPrice = partPrice * quantity + startPrice + shippingCost;
 
     const quoteDoc = {
@@ -264,7 +268,7 @@ app.post("/qoute", async (req, res) => {
         startPrice,
         shippingCost,
         totalPrice,
-        currency: data?.pricing?.currency || "USD",
+        currency: data?.pricing?.currency || "SEK",
       },
     };
 
@@ -296,29 +300,50 @@ app.post("/createPaymentLink", async (req, res) => {
     const quoteId = req.headers["x-quote-id"];
     const quoteSnap = await db.collection("quotes").doc(quoteId).get();
     const quote = quoteSnap.data();
-    const totalOre = Math.round(Number(quote?.pricing?.totalPrice) * 100 * 9);
 
     const stripe = new Stripe(STRIPE_TOKEN.value());
-  
+
+    const quantity = parseInt(quote?.quantity, 10) || 1;
+
+    // All SEK (NOT öre)
+    const partPriceSek = Number(quote?.pricing?.partPriceSek ?? quote?.pricing?.partPrice ?? 0);
+    const startPriceSek = Number(quote?.pricing?.startPriceSek ?? 150);
+    const shippingSek = Number(quote?.pricing?.shippingCostSek ?? 129);
+
+    // Convert SEK -> öre safely (rounded to integer)
+    const toOre = (sek) => Math.round(Number(sek) * 100);
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       locale: "sv",
-
-      // Force at least one valid method:
-      payment_method_types: ["card"],
-
+      payment_method_types: ["card", "klarna", "link"],
       customer_creation: "always",
       billing_address_collection: "required",
       client_reference_id: quoteId,
       metadata: { quote_id: quoteId },
       line_items: [
         {
+          quantity,
+          price_data: {
+            currency: "sek",
+            unit_amount: toOre(partPriceSek),
+            product_data: { name: "Delkostnad" },
+          },
+        },
+        {
           quantity: 1,
           price_data: {
             currency: "sek",
-            unit_amount: totalOre,
-            product_data: { name: `Quote ${quoteId}` },
+            unit_amount: toOre(startPriceSek),
+            product_data: { name: "Startkostnad" },
+          },
+        },
+        {
+          quantity: 1,
+          price_data: {
+            currency: "sek",
+            unit_amount: toOre(shippingSek),
+            product_data: { name: "Postnord frakt (2-3 dagar)" },
           },
         },
       ],
@@ -338,6 +363,7 @@ app.post("/createPaymentLink", async (req, res) => {
     return res.status(500).json({ error: e?.message || "Internal server error" });
   }
 });
+
 
 
 exports.api = onRequest(

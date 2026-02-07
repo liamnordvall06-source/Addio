@@ -4,14 +4,19 @@ import HeaderComponent from "../components/headerComponent";
 import { storage } from "../middleware/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { PuffLoader } from "react-spinners";
+import { PuffLoader, ClipLoader } from "react-spinners";
 import ModelPreview from "../components/ModelPreview";
 import { MdDeleteOutline } from "react-icons/md";
+
+// Save information in session to reload
+// Make success page
+// Make red text on cancel payment
+// Update env variables for new directive March
+
 
 const QuotationPage = () => {
 
     const [file, setFile] = useState(null);
-    const [fileBody, setFileBody] = useState(null);
     const [loading, setLoading] = useState(false);
     const [loadingQuote, setLoadingQuote] = useState(false);
     const [fileId, setFileId] = useState("");
@@ -23,7 +28,7 @@ const QuotationPage = () => {
     const [materialId, setMaterialId] = useState("");
     const [infill, setInfill] = useState(25);
 
-    const [quote, setQuote] = useState({partPrice: "--"});
+    const [quote, setQuote] = useState({partPrice: 0, quantity: 0, startPrice: 0, totalPrice: 0, shippingCost: 0});
 
     useEffect(() => {
         const fetchMaterial = async () => {
@@ -89,17 +94,12 @@ const QuotationPage = () => {
     const handleFileChange = (selectedFile) => {
         if (!selectedFile) {
             setFile(null);
-            setFileBody(null);
             return;
         }
 
         setFile(selectedFile);
 
-        const reader = new FileReader();
-
-        reader.onload = () => {
-            setFileBody(reader.result);
-        };
+        const reader = new FileReader();   
 
         reader.readAsText(selectedFile);
     };
@@ -110,8 +110,8 @@ const QuotationPage = () => {
 
     const handleDelete = () => {
         setFile(0);
-        setFileBody(0);
         setFileId(0);
+        setQuote({partPrice: 0, quantity: 0, startPrice: 0});
     }
 
     const handleSubmit = (e) => {
@@ -120,6 +120,8 @@ const QuotationPage = () => {
     }
 
     const fetchQoute = async () => {
+        if (!fileId || !materialId) return;
+
         try {
         setLoadingQuote(true);
         const jsonObj = {
@@ -151,6 +153,37 @@ const QuotationPage = () => {
         setLoadingQuote(false);
     }
     };
+
+    useEffect(() => {
+        if (!fileId || !materialId) return;
+
+        fetchQoute();
+    }, [fileId]);
+
+    const handleCheckout = async () => {
+        try {
+            const response = await fetch(
+            "https://api-iinmezl24q-uc.a.run.app/createPaymentLink",
+            {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                "X-Quote-Id": quote.quoteId, 
+                },
+            }
+            );
+
+            if (!response.ok) {
+            throw new Error("Payment link creation failed");
+            }
+
+            const data = await response.json();
+
+            window.location.href = data.url;
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     return (
         <div className={styles.mainContainer}>
@@ -244,7 +277,7 @@ const QuotationPage = () => {
 
                                 <div className={styles.partPriceContainer}>
                                     <label>Pris:</label>
-                                    <p><b>{loadingQuote ? <PuffLoader /> : quote?.partPrice * quote?.quantity + quote?.startPrice + " $"}</b></p>
+                                    {loadingQuote ? <ClipLoader size={20} color="#4294FF" /> : <p><b>{quote?.partPrice * quote?.quantity + quote?.startPrice + " kr"}</b></p>}
                                     <button type="submit" className={styles.updateBtn}>Uppdatera</button>
                                 </div>
 
@@ -256,10 +289,56 @@ const QuotationPage = () => {
                 </div>
                 <div className={styles.priceContainer}>
                     <div className={styles.btnContainer}>
-                        <h3>Prisdetaljer</h3>
+                        <h2>Prisdetaljer</h2>
+                        <div className={styles.totalPriceContainer}>
+                            <div className={styles.priceRow}>
+                                <h3>Totalt pris</h3>
+                                {loadingQuote ? (
+                                <ClipLoader size={20} color="#4294FF" />
+                                ) : (
+                                <span className={styles.priceValue}>
+                                    {quote?.totalPrice} kr
+                                </span>
+                                )}
+                            </div>
+                            </div>
 
-                        <button className={styles.checkoutBtn} disabled>GÅ TILL KASSA</button>
-                        <button className={styles.addToCartBtn} disabled>LÄGG I KUNDVAGN</button>
+                            <div className={styles.priceSpecificationContainer}>
+                            <h3>Specifikation</h3>
+
+                            <div className={styles.priceRow}>
+                                <span>Delpris</span>
+                                {loadingQuote ? (
+                                <ClipLoader size={16} color="#4294FF" />
+                                ) : (
+                                <span className={styles.priceValue}>
+                                    {quote?.partPrice * quote?.quantity + quote?.startPrice} kr
+                                </span>
+                                )}
+                            </div>
+
+                            <div className={styles.priceRow}>
+                                <span>Fraktkostnad</span>
+                                {loadingQuote ? (
+                                <ClipLoader size={16} color="#4294FF" />
+                                ) : (
+                                <span className={styles.priceValue}>
+                                    {quote?.shippingCost} kr
+                                </span>
+                                )}
+                            </div>
+                            <div className={styles.priceRow}>
+                                <span>Antal</span>
+                                {loadingQuote ? (
+                                <ClipLoader size={16} color="#4294FF" />
+                                ) : (
+                                <span className={styles.priceValue}>
+                                    {quote?.quantity} st
+                                </span>
+                                )}
+                            </div>
+                            </div>
+                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()}>GÅ TILL KASSA</button>
                     </div>
                 </div>
             </div>

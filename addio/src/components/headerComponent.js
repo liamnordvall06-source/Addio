@@ -6,7 +6,9 @@ import BrandLogo from "../assets/BlackLogo.png";
 const HeaderComponent = () => {
     return (
         <div className={styles.mainContainer}>
-            <div className={styles.bannerContainer}></div>
+            <div className={styles.bannerContainer}>
+                <p>FÅ EN ONLINE OFFERT NU!</p>
+            </div>
             <div className={styles.headerContainer}>
                 <div className={styles.innerContainer}>
                     <img src={BrandLogo} />

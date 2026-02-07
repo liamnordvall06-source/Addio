@@ -13,6 +13,11 @@
     height: 40px;
     width: 100%;
     background-color: #191919;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 14px;
 }
 
 .headerContainer {
@@ -32,4 +37,30 @@
 
 .headerContainer img {
     height: 50px;
+}
+
+@media only screen and (max-width: 2000px) {
+    .headerContainer .innerContainer {
+        width: 1400px;
+    }
+}
+
+@media only screen and (max-width: 1700px) {
+    .headerContainer .innerContainer {
+        width: 1200px;
+    }
+}
+
+@media only screen and (max-width: 1300px) {
+    .headerContainer .innerContainer {
+        width: 800px;
+        flex-direction: column;
+    }
+
+}
+
+@media only screen and (max-width: 900px) {
+    .headerContainer .innerContainer {
+        width: 600px;
+    }
 }
