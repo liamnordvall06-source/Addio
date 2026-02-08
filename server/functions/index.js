@@ -233,6 +233,7 @@ app.post("/qoute", async (req, res) => {
         headers: {
           Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
           "Content-Type": "application/json",
+          "Connection": "close"
         },
         body: JSON.stringify(obj),
       }
@@ -295,6 +296,7 @@ app.post("/qoute", async (req, res) => {
 })
 
 
+
 app.post("/createPaymentLink", async (req, res) => {
   try {
     const quoteId = req.headers["x-quote-id"];
@@ -313,43 +315,64 @@ app.post("/createPaymentLink", async (req, res) => {
     // Convert SEK -> öre safely (rounded to integer)
     const toOre = (sek) => Math.round(Number(sek) * 100);
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      locale: "sv",
-      payment_method_types: ["card", "klarna", "link"],
-      customer_creation: "always",
-      billing_address_collection: "required",
-      client_reference_id: quoteId,
-      metadata: { quote_id: quoteId },
-      line_items: [
-        {
-          quantity,
-          price_data: {
-            currency: "sek",
-            unit_amount: toOre(partPriceSek),
-            product_data: { name: "Delkostnad" },
-          },
+const session = await stripe.checkout.sessions.create({
+  mode: "payment",
+  locale: "sv",
+  payment_method_types: ["card", "klarna", "link"],
+
+  automatic_tax: {
+    enabled: true,
+  },
+
+  customer_creation: "always",
+  billing_address_collection: "required",
+  client_reference_id: quoteId,
+  metadata: { quote_id: quoteId },
+
+  line_items: [
+    {
+      quantity,
+      price_data: {
+        currency: "sek",
+        unit_amount: toOre(partPriceSek),
+        tax_behavior: "exclusive",
+        product_data: {
+          name: "Delkostnad",
+          tax_code: "txcd_10000000",
+          description: "Offert: " + quoteId
         },
-        {
-          quantity: 1,
-          price_data: {
-            currency: "sek",
-            unit_amount: toOre(startPriceSek),
-            product_data: { name: "Startkostnad" },
-          },
+      },
+    },
+    {
+      quantity: 1,
+      price_data: {
+        currency: "sek",
+        unit_amount: toOre(startPriceSek),
+        tax_behavior: "exclusive",
+        product_data: {
+          name: "Startkostnad",
+          tax_code: "txcd_10000000",
         },
-        {
-          quantity: 1,
-          price_data: {
-            currency: "sek",
-            unit_amount: toOre(shippingSek),
-            product_data: { name: "Postnord frakt (2-3 dagar)" },
-          },
+      },
+    },
+    {
+      quantity: 1,
+      price_data: {
+        currency: "sek",
+        unit_amount: toOre(shippingSek),
+        tax_behavior: "exclusive",
+        product_data: {
+          name: "Postnord frakt (2-3 dagar)",
+          tax_code: "txcd_92010001", // Shipping tax code
         },
-      ],
-      success_url: "https://addio-11148.web.app/",
-      cancel_url: "https://addio-11148.web.app/",
-    });
+      },
+    },
+  ],
+
+  success_url: "https://addio-11148.web.app/success",
+  cancel_url: "https://addio-11148.web.app?cancelPayment=true",
+});
+
 
     await quoteSnap.ref.update({
       stripeSessionId: session.id,
@@ -370,6 +393,7 @@ exports.api = onRequest(
   {
     cors: true,
     secrets: [CLOUDSLICER_TOKEN, STRIPE_TOKEN],
+    timeoutSeconds: 60, 
   },
   app
 );

@@ -7,10 +7,8 @@ import { v4 as uuidv4 } from "uuid";
 import { PuffLoader, ClipLoader } from "react-spinners";
 import ModelPreview from "../components/ModelPreview";
 import { MdDeleteOutline } from "react-icons/md";
+import { useLocation } from "react-router-dom";
 
-// Save information in session to reload
-// Make success page
-// Make red text on cancel payment
 // Update env variables for new directive March
 // Structure the code into components
 
@@ -30,7 +28,29 @@ const QuotationPage = () => {
 
     const [quote, setQuote] = useState({partPrice: 0, quantity: 0, startPrice: 0, totalPrice: 0, shippingCost: 0});
 
+    const location = useLocation();
+    const params = new URLSearchParams(location.search);
+    const cancelPayment = params.get("cancelPayment");
+
     useEffect(() => {
+        const session_fileId = localStorage.getItem("fileId");           
+        const session_materialId = localStorage.getItem("materialId");           
+        const session_quantity = localStorage.getItem("quantity");           
+        const session_infill = localStorage.getItem("infill");         
+        const session_file = localStorage.getItem("file");
+        const session_previewURL = localStorage.getItem("previewURL");
+        const session_fileExt = localStorage.getItem("fileExt");
+
+        if (session_fileId && session_materialId && session_quantity && session_infill && session_file && session_previewURL && session_fileExt) {
+            setFileId(session_fileId);
+            setMaterialId(session_materialId);
+            setQuantity(session_quantity);
+            setInfill(session_infill);
+            setFile(session_file);
+            setPreviewUrl(session_previewURL);
+            setFileExt(session_fileExt);
+        } 
+
         const fetchMaterial = async () => {
             try {
                 const response = await fetch("https://api-iinmezl24q-uc.a.run.app/material");
@@ -39,7 +59,10 @@ const QuotationPage = () => {
 
                 setMaterials(data);
 
-                setMaterialId(data[1].filament_id);
+                if (!session_materialId) {
+                    setMaterialId(data[1].filament_id);
+                }
+
             } catch (e) {
                 console.error(e.message);
             }
@@ -52,7 +75,7 @@ const QuotationPage = () => {
         if (!file) return;
         try {
             setLoading(true);
-            const rawExt = (file.name.split(".").pop() || "").toLowerCase();
+            const rawExt = (file?.name.split(".").pop() || "").toLowerCase();
             const allowed = new Set(["stl", "step", "stp", "3mf", "obj"]);
             const ext = allowed.has(rawExt) ? rawExt : "stl";
 
@@ -120,7 +143,9 @@ const QuotationPage = () => {
     }
 
     const fetchQoute = async () => {
-        if (!fileId || !materialId) return;
+        console.log("Fetch Quote");
+        if (loadingQuote) return;
+        if (!fileId || !materialId || !file || !infill) return;
 
         try {
         setLoadingQuote(true);
@@ -155,13 +180,28 @@ const QuotationPage = () => {
     };
 
     useEffect(() => {
-        if (!fileId || !materialId) return;
+    if (!fileId || !materialId || !infill || !quantity) return;
 
+    const t = setTimeout(() => {
         fetchQoute();
+    }, 400); 
+
+    return () => clearTimeout(t);
     }, [fileId]);
+
+
 
     const handleCheckout = async () => {
         try {
+            localStorage.setItem("fileId", fileId);
+            localStorage.setItem("materialId", materialId);
+            localStorage.setItem("quantity", quantity);
+            localStorage.setItem("infill", infill);
+            localStorage.setItem("file", file);
+            localStorage.setItem("previewURL", previewUrl);
+            localStorage.setItem("fileExt", fileExt);
+
+
             const response = await fetch(
             "https://api-iinmezl24q-uc.a.run.app/createPaymentLink",
             {
@@ -241,7 +281,7 @@ const QuotationPage = () => {
                                         )}
                                     </div>
                                     <div className={styles.modelSpecification}>
-                                        <p><b>{file.name}</b></p>
+                                        <p><b>{file?.name}</b></p>
                                         <div>
                                             <p>22x25x10 mm</p>
                                             <p>5500 mm³</p>
@@ -278,7 +318,7 @@ const QuotationPage = () => {
                                 <div className={styles.partPriceContainer}>
                                     <label>Pris:</label>
                                     {loadingQuote ? <ClipLoader size={20} color="#4294FF" /> : <p><b>{quote?.partPrice * quote?.quantity + quote?.startPrice + " kr"}</b></p>}
-                                    <button type="submit" className={styles.updateBtn}>Uppdatera</button>
+                                    <button type="submit" className={styles.updateBtn} disabled={loadingQuote}>Uppdatera</button>
                                 </div>
 
                             </form>
@@ -301,6 +341,8 @@ const QuotationPage = () => {
                                 </span>
                                 )}
                             </div>
+                            <p className={styles.VATText}><i>Moms beräknas i kassan (25%)</i></p>
+
                             </div>
 
                             <div className={styles.priceSpecificationContainer}>
@@ -338,7 +380,9 @@ const QuotationPage = () => {
                                 )}
                             </div>
                             </div>
-                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()}>GÅ TILL KASSA</button>
+                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()} disabled={quote}>GÅ TILL KASSA</button>
+
+                        {cancelPayment ? <p className={styles.canceledPaymentText}>Din betalning misslyckades</p> : ""}
                     </div>
                 </div>
             </div>
