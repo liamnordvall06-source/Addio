@@ -48,17 +48,35 @@ app.post("/file", async (req, res) => {
     const form = new FormData();
     form.append("file", await openAsBlob(tmpPath), fileName);
 
-    const response = await fetch("https://api.cloudslicer3d.com/v1/file", {
+    const API_file_response = await fetch("https://files.simplyprint.io/62398/files/Upload", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
-        Accept: "application/json",
+        "X-API-KEY": "a1c6ac26-302a-409e-9e5f-bc10cf52bc8d",
+        "Accept": "application/json"
       },
       body: form,
     });
 
-    const text = await response.text();
-    return res.status(response.status).send(text);
+    const API_file_data = await API_file_response.json();
+
+    const formFile = new FormData();
+    formFile.append("fileId", API_file_data.file.id);
+
+    const file_response = await fetch(
+      "https://api.simplyprint.io/62398/files/Upload",
+      {
+        method: "POST",
+        headers: {
+          "X-API-KEY": "a1c6ac26-302a-409e-9e5f-bc10cf52bc8d",
+          "Accept": "application/json"
+        },
+        body: formFile
+      }
+    );
+    const data = await file_response.json();
+    
+    return res.status(file_response.status).json(data);
+
   } catch (e) {
     logger.error(e);
     return res.status(500).json({ error: e.message });
@@ -73,18 +91,20 @@ app.post("/file", async (req, res) => {
 
 app.get("/material", async (req, res) => {
   try {
-
-    const response = await fetch("https://api.cloudslicer3d.com/v1/filament", {
-      method: "GET",
+    const response = await fetch("https://api.simplyprint.io/62398/filament/GetFilament", {
       headers: {
-        Authorization: `Bearer ${CLOUDSLICER_TOKEN.value()}`,
+        "X-API-KEY": "a1c6ac26-302a-409e-9e5f-bc10cf52bc8d",
+        "Accept": "application/json"
       }
-    })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).send(errorText);
+    }
 
     const data = await response.json();
-
-    return res.status(response.status).json(data);
-
+    return res.json(data);
 
   } catch (e) {
     logger.error(e);
@@ -315,59 +335,59 @@ app.post("/createPaymentLink", async (req, res) => {
     // Convert SEK -> öre safely (rounded to integer)
     const toOre = (sek) => Math.round(Number(sek) * 100);
 
-const session = await stripe.checkout.sessions.create({
-  mode: "payment",
-  locale: "sv",
-  payment_method_types: ["card", "klarna", "link"],
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      locale: "sv",
+      payment_method_types: ["card", "klarna", "link"],
 
-  automatic_tax: {
-    enabled: true,
-  },
+      automatic_tax: {
+        enabled: true,
+      },
 
-  customer_creation: "always",
-  billing_address_collection: "required",
-  client_reference_id: quoteId,
-  metadata: { quote_id: quoteId },
+      customer_creation: "always",
+      billing_address_collection: "required",
+      client_reference_id: quoteId,
+      metadata: { quote_id: quoteId },
 
-  line_items: [
-    {
-      quantity,
-      price_data: {
-        currency: "sek",
-        unit_amount: toOre(partPriceSek),
-        tax_behavior: "exclusive",
-        product_data: {
-          name: "Delkostnad",
-          tax_code: "txcd_10000000",
-          description: "Offert: " + quoteId
+      line_items: [
+        {
+          quantity,
+          price_data: {
+            currency: "sek",
+            unit_amount: toOre(partPriceSek),
+            tax_behavior: "exclusive",
+            product_data: {
+              name: "Delkostnad",
+              tax_code: "txcd_10000000",
+              description: "Offert: " + quoteId
+            },
+          },
         },
-      },
-    },
-    {
-      quantity: 1,
-      price_data: {
-        currency: "sek",
-        unit_amount: toOre(startPriceSek),
-        tax_behavior: "exclusive",
-        product_data: {
-          name: "Startkostnad",
-          tax_code: "txcd_10000000",
+        {
+          quantity: 1,
+          price_data: {
+            currency: "sek",
+            unit_amount: toOre(startPriceSek),
+            tax_behavior: "exclusive",
+            product_data: {
+              name: "Startkostnad",
+              tax_code: "txcd_10000000",
+            },
+          },
         },
-      },
-    },
-    {
-      quantity: 1,
-      price_data: {
-        currency: "sek",
-        unit_amount: toOre(shippingSek),
-        tax_behavior: "exclusive",
-        product_data: {
-          name: "Postnord frakt (2-3 dagar)",
-          tax_code: "txcd_92010001", // Shipping tax code
+        {
+          quantity: 1,
+          price_data: {
+            currency: "sek",
+            unit_amount: toOre(shippingSek),
+            tax_behavior: "exclusive",
+            product_data: {
+              name: "Postnord frakt (2-3 dagar)",
+              tax_code: "txcd_92010001", // Shipping tax code
+            },
+          },
         },
-      },
-    },
-  ],
+      ],
 
   success_url: "https://addio-11148.web.app/success",
   cancel_url: "https://addio-11148.web.app?cancelPayment=true",
@@ -386,7 +406,6 @@ const session = await stripe.checkout.sessions.create({
     return res.status(500).json({ error: e?.message || "Internal server error" });
   }
 });
-
 
 
 exports.api = onRequest(

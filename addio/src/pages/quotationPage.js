@@ -56,11 +56,15 @@ const QuotationPage = () => {
                 const response = await fetch("https://api-iinmezl24q-uc.a.run.app/material");
 
                 const data = await response.json();
+                const arrayOfObj = Object.entries(data.filament).map(([id, obj]) => ({
+                id,
+                ...obj
+                }));
 
-                setMaterials(data);
+                setMaterials(arrayOfObj);
 
                 if (!session_materialId) {
-                    setMaterialId(data[1].filament_id);
+                    setMaterialId(arrayOfObj[1].id);
                 }
 
             } catch (e) {
@@ -105,9 +109,10 @@ const QuotationPage = () => {
             }
 
             const data = await response.json();
-            sessionStorage.setItem("fileId", data.file_id);
-            setFileId(data.file_id);
+            sessionStorage.setItem("fileId", data.id);
+            setFileId(data.id);
             setLoading(false);
+            console.log(data);
         } catch (err) {
             console.error("Upload failed:", err);
             setLoading(false);
@@ -297,16 +302,16 @@ const QuotationPage = () => {
                                 <label>Material:</label>
                                 <div className={styles.materialsContainer}>
                                 {materials?.map(material => {
-                                    const isActive = materialId === material.filament_id;
+                                    const isActive = materialId === material.id;
 
                                     return (
                                     <button
                                         type="button"
-                                        key={material.filament_id}
-                                        onClick={() => setMaterialId(material.filament_id)}
+                                        key={material.id}
+                                        onClick={() => setMaterialId(material.id)}
                                         className={`${styles.materialBtn} ${isActive ? styles.active : ""}`}
                                     >
-                                        {material.filament_name}
+                                        {material.type.name}
                                     </button>
                                     );
                                 })}
@@ -380,7 +385,7 @@ const QuotationPage = () => {
                                 )}
                             </div>
                             </div>
-                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()} disabled={quote}>GÅ TILL KASSA</button>
+                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()} disabled={quote.partPrice < 1}>GÅ TILL KASSA</button>
 
                         {cancelPayment ? <p className={styles.canceledPaymentText}>Din betalning misslyckades</p> : ""}
                     </div>

@@ -7,8 +7,14 @@ import SuccessLogo from "../assets/success.png";
 const SuccessPage = () => {
     const navigate = useNavigate();
 
-    const handleRedirect = () => {
-        navigate("/");
+    const handleRedirect = async () => {
+        const response = await fetch("https://api-iinmezl24q-uc.a.run.app/material");
+
+        const data = await response.json();
+
+        console.log(data);
+
+        // navigate("/");
     };
 
     return (
