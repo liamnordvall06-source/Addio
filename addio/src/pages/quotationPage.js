@@ -380,7 +380,7 @@ const QuotationPage = () => {
                                 )}
                             </div>
                             </div>
-                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()} disabled={quote}>GÅ TILL KASSA</button>
+                        <button className={styles.checkoutBtn} onClick={() => handleCheckout()} disabled={!quote}>GÅ TILL KASSA</button>
 
                         {cancelPayment ? <p className={styles.canceledPaymentText}>Din betalning misslyckades</p> : ""}
                     </div>
