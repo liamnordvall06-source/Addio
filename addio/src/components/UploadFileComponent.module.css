@@ -1,0 +1,59 @@
+/* FileUpload.module.css */
+.uploadCard {
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.dropZone {
+  min-height: 200px;
+  padding: 19px 16px 17px;
+  text-align: center;
+  border: 1px dashed #4c6a9b;
+  border-radius: 10px 10px 0 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.uploadText {
+  margin: 0;
+  color: #494949;
+  font-size: 16px;
+}
+
+.orText {
+  display: block;
+  margin: 6px 0 12px;
+  color: #777f89;
+  font-size: 11px;
+}
+
+.uploadButton {
+    background-color: #1149A1;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.uploadFooter {
+  padding: 12px 12px 12px;
+  border-top: 1px solid #e4e8ee;
+  color: #7a828d;
+  font-size: 12px;
+  line-height: 1.45;
+  background-color: #F9FAFC;
+  border: 1px solid #cecece;
+  border-radius: 0 0 10px 10px;
+}
+
+.uploadFooter p {
+  margin: 0;
+}

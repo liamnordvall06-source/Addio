@@ -1,16 +1,25 @@
-import React, { useState } from "react";
-import styles from "./UploadFileComponent.module.css";
-
+import React from 'react'
+import styles from "./UploadFileComponent.module.css"
 
 const UploadFileComponent = () => {
+  return (
+  <div className={styles.uploadCard}>
+      <div className={styles.dropZone}>
 
-    const [file, setFile] = useState(null);
-    const [fileId, setFileId] = useState("");
-    const [fileExt, setFileExt] = useState("");
-    const [loading, setLoading] = useState(false);
-    
+        <p className={styles.uploadText}>Dra och släpp dina filer här</p>
+        <span className={styles.orText}>eller</span>
 
+        <button className={styles.uploadButton} type="button">
+          VÄLJ FILER
+        </button>
+      </div>
+
+      <div className={styles.uploadFooter}>
+        <p>Stödda format: STL, STEP, OBJ, 3MF</p>
+        <p>Max filstorlek: 500 MB per fil</p>
+      </div>
+    </div>
+  )
 }
 
-
-export default UploadFileComponent;
+export default UploadFileComponent

@@ -1,22 +1,22 @@
-import React from "react";
-import styles from "./headerComponent.module.css";
-import BrandLogo from "../assets/BlackLogo.png";
+import React from 'react'
+import styles from "./headerComponent.module.css"
+import BrandLogo from "../assets/BlackBrandLogo.png"
 
 
 const HeaderComponent = () => {
-    return (
-        <div className={styles.mainContainer}>
-            <div className={styles.bannerContainer}>
-                <p>FÅ EN ONLINE OFFERT NU!</p>
+  return (
+    <div className={styles.mainHeaderContainer}>
+        <div className={styles.innerContainer}>
+            <img src={BrandLogo} alt="BrandIt3D" />
+            
+            <div className={styles.progressContainer}>
+
             </div>
-            <div className={styles.headerContainer}>
-                <div className={styles.innerContainer}>
-                    <img src={BrandLogo} />
-                </div>
-            </div>
+
+            <button className={styles.signInBtn}>Logga in</button>
         </div>
-    );
+    </div>
+  )
 }
 
-
-export default HeaderComponent;
+export default HeaderComponent

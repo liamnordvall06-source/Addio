@@ -1,14 +1,12 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import QuotationPage from "./pages/quotationPage";
-import SuccessPage from "./pages/successPage";
+import MainPage from "./pages/mainPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<QuotationPage />} />
-        <Route path="/success" element={<SuccessPage />} />
+        <Route path="/" element={<MainPage/>} />
       </Routes>
     </BrowserRouter>
   );
