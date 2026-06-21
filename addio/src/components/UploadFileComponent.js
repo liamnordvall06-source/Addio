@@ -3,7 +3,9 @@ import styles from "./UploadFileComponent.module.css"
 
 const UploadFileComponent = () => {
   return (
+
   <div className={styles.uploadCard}>
+      <h1>Ladda upp fil</h1>
       <div className={styles.dropZone}>
 
         <p className={styles.uploadText}>Dra och släpp dina filer här</p>

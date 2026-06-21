@@ -1,10 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+
+
 body {
   margin: 0;
-  font-family: "Arial Rounded MT Bold",
-               "Helvetica Rounded",
-               Arial,
-               sans-serif;
-  }
+  font-family: "Manrope", sans-serif;
+  background-color: #F9FAFB;
+}
+
+button {
+  transition: box-shadow 0.2s ease, opacity 0.2s ease;
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+button:active {
+  opacity: 0.95;
+}
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',

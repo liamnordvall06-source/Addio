@@ -5,6 +5,8 @@ import LeftSidebarComponent from '../components/leftSidebarComponent'
 import ViewerComponent from '../components/ViewerComponent'
 import FilesListComponent from '../components/FilesListComponent'
 import MaterialSpecificationComponent from '../components/MaterialSpecificationComponent'
+import RightSidebarComponent from '../components/RightSidebarComponent'
+import HelpSupportComponent from '../components/HelpSupportComponent'
 
 const MainPage = () => {
   return (
@@ -21,9 +23,10 @@ const MainPage = () => {
         </div>
 
         <div className={styles.rightContainer}>
-            <MaterialSpecificationComponent />
+            <RightSidebarComponent />
         </div>
       </div>
+      <HelpSupportComponent />
     </div>
   )
 }

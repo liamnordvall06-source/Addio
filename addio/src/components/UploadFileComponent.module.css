@@ -1,10 +1,15 @@
 /* FileUpload.module.css */
 .uploadCard {
   width: 100%;
-  overflow: hidden;
   background: #fff;
   font-family: Arial, sans-serif;
 }
+
+.uploadCard h1 {
+    font-size: 18px;
+    font-weight: 500;
+}
+
 
 .dropZone {
   min-height: 200px;

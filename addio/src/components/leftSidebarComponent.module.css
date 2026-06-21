@@ -4,4 +4,7 @@
     background-color: #ffffff;
     border-right: 1px solid rgb(236, 236, 236);
     padding: 20px;
+    display: flex;
+    gap: 20px;
+    flex-direction: column;
 }

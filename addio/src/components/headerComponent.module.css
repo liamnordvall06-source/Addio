@@ -6,6 +6,7 @@
     display: flex;
     align-items: center;
     box-sizing: border-box;
+    position: fixed;
 }
 
 .mainHeaderContainer .innerContainer {
