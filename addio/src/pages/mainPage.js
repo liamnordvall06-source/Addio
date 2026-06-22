@@ -17,10 +17,10 @@ const MainPage = () => {
           <LeftSidebarComponent />
         </div>
 
-        {/* // <div className={styles.middleContainer}>
-        //   <ViewerComponent />
-        //   <FilesListComponent />
-        // </div> */}
+        <div className={styles.middleContainer}>
+           <ViewerComponent />
+          <FilesListComponent />
+        </div>
 
         <div className={styles.rightContainer}>
             <RightSidebarComponent />

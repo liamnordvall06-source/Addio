@@ -1,10 +1,22 @@
-import React from 'react'
+import React, { useState } from 'react'
 import styles from "./MaterialsListComponent.module.css";
 import { IoFilter, IoSearch } from "react-icons/io5";
-import { IoIosArrowDown } from "react-icons/io";
+import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
+import MaterialCardComponent from './MaterialCardComponent';
 
 
 const MaterialsListComponent = () => {
+  const [expanded, setExpanded] = useState(false);
+  const defaultVisible = 4;
+
+  // Placeholder materials list (can be replaced with real data later)
+  const materials = Array.from({ length: 8 }).map((_, i) => ({
+    id: i,
+    isRecommended: i === 0,
+  }));
+
+  const visibleMaterials = expanded ? materials : materials.slice(0, defaultVisible);
+
   return (
     <div className={styles.materialListContainer}>
         <h1>Välj material</h1>
@@ -19,14 +31,27 @@ const MaterialsListComponent = () => {
             <button className={styles.filterBtn}><IoFilter /></button>
         </div>
 
-        <ul>
-          <li>
-            <button className={styles.showAllMaterialsBtn}>
-                <IoIosArrowDown />
-                <p>Visa fler material</p>
-            </button>
-          </li>
-        </ul>
+        <div className={styles.listWrapper}>
+          <ul>
+            {visibleMaterials.map((m) => (
+              <li key={m.id}>
+                <MaterialCardComponent isRecommended={m.isRecommended} />
+              </li>
+            ))}
+          </ul>
+          {materials.length > defaultVisible && (
+            <div className={styles.showAllMaterialsBtnWrapper}>
+              <button
+                aria-expanded={expanded}
+                onClick={() => setExpanded((s) => !s)}
+                className={styles.showAllMaterialsBtn}
+              >
+                {expanded ? <IoIosArrowUp /> : <IoIosArrowDown />}
+                <p>{expanded ? 'Visa färre material' : 'Visa fler material'}</p>
+              </button>
+            </div>
+          )}
+        </div>
 
       </div>
   )

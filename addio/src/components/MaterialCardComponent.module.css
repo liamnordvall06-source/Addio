@@ -1,0 +1,89 @@
+.materialCardContainer {
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 2px 4px rgba(15, 23, 42, 0.06),
+        0 4px 8px rgba(15, 23, 42, 0.08);
+    padding: 15px;
+    cursor: pointer;
+}
+
+.materialCardContainer .materialHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;   
+}
+
+.materialCardContainer .materialHeader h3 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 10px 0 0 0;
+}
+
+.materialCardContainer .recommendedBadge {
+    width: 140px;
+    height: 27px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #0a44e417;
+    border-radius: 5px;
+    gap: 5px;
+    color: #0A45E4;
+    font-size: 12px;
+}
+
+.materialCardContainer .recommendedBadge p {
+    margin: 0;
+    font-size: 14px;
+    color: #0A45E4;
+}
+
+.materialCardContainer .materialInfo p {
+    font-size: 14px;
+    color: #666;
+    font-weight: 400;
+    margin: 0;
+}
+
+.materialCardContainer .materialFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.materialCardContainer .materialFooter .badge {
+    width: 60px;
+    height: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(255, 255, 255);
+    border-radius: 5px;
+    border: 1px solid rgb(179, 179, 179);
+}
+
+.materialCardContainer .materialFooter .badge p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.materialCardContainer .materialFooter .readMoreLink {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.materialCardContainer .materialFooter .readMoreLink p {
+    margin: 0;
+}
+
+.materialCardContainer .badgeContainer {
+    display: flex;
+    gap: 10px;
+}

@@ -61,6 +61,12 @@
     cursor: pointer;
 }
 
+.materialListContainer {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
 .materialListContainer ul {
     width: 100%;
     display: flex;
@@ -68,6 +74,25 @@
     list-style: none;
     padding: 0;
     gap: 15px;
+}
+
+.materialListContainer li {
+    overflow: visible;
+}
+
+.listWrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 90px;
+}
+
+.showAllMaterialsBtnWrapper {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    background-color: #ffffff;
+    z-index: 20;
 }
 
 .materialListContainer .showAllMaterialsBtn {
@@ -83,6 +108,8 @@
     font-size: 18px;
     cursor: pointer;
     width: 100%;
+    max-width: 420px;
+    margin-bottom: 20px;
 }
 
 .materialListContainer .showAllMaterialsBtn p {
