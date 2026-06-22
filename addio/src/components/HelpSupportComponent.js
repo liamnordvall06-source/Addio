@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import styles from "./HelpSupportComponent.module.css"
-import { IoClose } from "react-icons/io5";
+import { IoChatbubble, IoClose } from "react-icons/io5";
 import { MdHelp } from "react-icons/md";
 import { MdInfoOutline } from "react-icons/md";
 import { IoHelpCircleOutline } from "react-icons/io5";
@@ -111,7 +111,7 @@ const HelpSupportComponent = () => {
         aria-label="Öppna hjälp"
         title="Hjälp och support"
       >
-        <MdHelp />
+        <IoChatbubble />
       </button>
     </div>
   )

@@ -7,6 +7,7 @@
     align-items: center;
     box-sizing: border-box;
     position: fixed;
+    z-index: 1;
 }
 
 .mainHeaderContainer .innerContainer {
@@ -22,12 +23,43 @@
     width: 150px;
 }
 
-.mainHeaderContainer .innerContainer .signInBtn {
-    background-color: #1149A1;
+.mainHeaderContainer .innerContainer .signUpBtn {
+    background-color: #0A45E4;
     color: #ffffff;
     border: none;
-    padding: 12px 30px;
+    padding: 12px 20px;
     border-radius: 5px;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+    font-family: "Manrope", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.mainHeaderContainer .innerContainer .signInBtn {
+    background-color: #ffffff;
+    color: #0A45E4;
+    border: 1px solid #0A45E4;
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-family: "Manrope", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.mainHeaderContainer .buttonContainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mainHeaderContainer .buttonContainer a {
+    margin-right: 20px;
+    color: #353535;
+    text-decoration: none;
+}
+
+.mainHeaderContainer .languageContainer {
+    margin-right: 20px;
+    font-size: 18px;
+    color: #353535;
     cursor: pointer;
 }

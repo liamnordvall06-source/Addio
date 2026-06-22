@@ -1,5 +1,7 @@
 import React from 'react'
 import styles from "./UploadFileComponent.module.css"
+import { AiOutlineCloudUpload } from "react-icons/ai";
+
 
 const UploadFileComponent = () => {
   return (
@@ -7,7 +9,7 @@ const UploadFileComponent = () => {
   <div className={styles.uploadCard}>
       <h1>Ladda upp fil</h1>
       <div className={styles.dropZone}>
-
+        <AiOutlineCloudUpload className={styles.uploadLogo}/>
         <p className={styles.uploadText}>Dra och släpp dina filer här</p>
         <span className={styles.orText}>eller</span>
 
