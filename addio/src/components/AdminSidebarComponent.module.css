@@ -1,0 +1,59 @@
+.adminSidebarContainer {
+    height: 100%;
+    width: 250px;
+    background-color: rgb(255, 255, 255);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 2px 4px rgba(15, 23, 42, 0.06),
+        0 4px 8px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(18px);    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.adminSidebarContainer .headerContainer {
+    width: 100%;
+    padding: 20px;
+}
+
+.adminSidebarContainer .headerContainer img {
+    width: 100%;
+}
+
+.adminSidebarContainer .mainContainer {
+    width: 100%;
+}
+
+.adminSidebarContainer .mainContainer ul {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0 20px;
+    list-style: none;
+}
+
+.adminSidebarContainer .mainContainer ul li h3 {
+    margin: 20px 0 10px 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.adminSidebarContainer .mainContainer ul .sidebarElement {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.adminSidebarContainer .mainContainer ul .sidebarElement p {
+    font-size: 16px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.adminSidebarContainer .footerContainer .signoutContainer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 20px;
+}

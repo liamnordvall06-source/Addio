@@ -74,44 +74,60 @@
     list-style: none;
     padding: 0;
     gap: 15px;
-}
 
+    transition: all 0.35s ease;
+}
 .materialListContainer li {
     overflow: visible;
 }
-
 .listWrapper {
     position: relative;
     width: 100%;
-    padding-bottom: 90px;
 }
 
 .showAllMaterialsBtnWrapper {
     position: sticky;
     bottom: 0;
+
+    width: calc(100% + 40px);
+    margin-left: -20px;
+
     display: flex;
     justify-content: center;
-    background-color: #ffffff;
+
+    padding: 24px 20px 20px;
+
     z-index: 20;
+
+    /* Viktigt för blur-effekt */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    background: #ffffff;
 }
 
 .materialListContainer .showAllMaterialsBtn {
+    width: 100%;
+
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
+
     padding: 12px 15px;
-    background-color: #ffffff;
+
+    background: #fff;
+
     border: 1px solid #0A45E4;
     border-radius: 5px;
+
     color: #0A45E4;
     font-size: 18px;
-    cursor: pointer;
-    width: 100%;
-    max-width: 420px;
-    margin-bottom: 20px;
-}
 
+    cursor: pointer;
+
+    box-sizing: border-box;
+}
 .materialListContainer .showAllMaterialsBtn p {
     font-family: "Manrope", sans-serif;
     font-size: 14px;
@@ -181,3 +197,4 @@
   border-radius: 50%;
   background-color: #000000;
 }
+
